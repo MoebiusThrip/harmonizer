@@ -11,13 +11,8 @@ from random import random, choice
 from datetime import datetime
 from math import sqrt
 
-
-
-
 # import pil and skimage
 from PIL import Image
-#from skimage import data, color
-#from skimage.transform import rescale, resize, downscale_local_mean
 
 # import tensorflow
 import tensorflow
@@ -33,28 +28,11 @@ from tensorflow.keras.layers import Activation
 from tensorflow.keras.layers import TimeDistributed
 from tensorflow.keras.layers import LeakyReLU
 from tensorflow.keras.layers import Masking
+from tensorflow.keras.layers import Conv2D, Flatten
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-
-
-# from keras import backend
-# from tensorflow.keras import backend
 
 # status
 print('imported modules.')
-
-# # import sklearn
-# from sklearn.neighbors import BallTree
-# from sklearn.externals import joblib
-# from sklearn.externals.joblib import load
-# print('imported sklearn.')
-
-# # import spacy
-# import spacy
-# print('imported spacy.')
-#
-# # load spacy library
-# spacy_nlp = spacy.load('en_core_web_lg')
-# print('en_core_web_lg loaded.')
 
 
 # Harmonizer class for an LSTM to predict an airn context vector on the context vectors of all conversation utterances prior
@@ -105,8 +83,8 @@ class Harmonizer(object):
         self.path = 'harmonizer.h5'
 
         # set training parameters
-        self.eras = 20
-        self.epochs = 20
+        self.eras = 5
+        self.epochs = 10
         self.validation = 0.1
 
         # prediction threshold
@@ -197,39 +175,11 @@ class Harmonizer(object):
         # Initialize the Model
         model = Sequential()
 
-        # stack dense layers
-        dimensions = self.height * self.width
-        model.add(Dropout(0.05, input_shape=(dimensions,)))
+        # add model layers
+        model.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
+        model.add(Conv2D(32, kernel_size=3, activation='relu'))
+        model.add(Flatten())
         model.add(Dense(len(self.categories), activation='softmax'))
-        #model.add(Dense(len(self.categories), activation='softmax', input_shape=(dimensions,),))
-        #model.add(Dense(len(self.categories) * 2, activation='relu'))
-        #model.add(Dense(len(self.categories), activation='softmax'))
-        #model.add(Dense(self.hiddensii, activation=self.activation))
-        # model.add(Dense(self.hiddensiii, activation=self.activationii))
-        # model.add(Dense(self.hiddensiv, activation=self.activation))
-        # model.add(Dense(len(self.categories), activation='softmax'))
-
-        # add activation layer
-        #model.add(Activation('softmax'))
-
-
-        # l2_rate = 1e-10
-        # for layer in model.layers:
-        #     if hasattr(layer, 'kernel_regularizer'):
-        #         layer.kernel_regularizer = regularizers.l2(l2_rate)
-        #         layer.bias_regularizer = regularizers.l2(l2_rate)
-        #         layer.activity_regularizer = regularizers.l2(l2_rate)
-        # # =================================================
-
-        # define how the neural network will learn,
-        # and compile the model.
-        # models must be compiled before
-        # they can be trained and used.
-        # the loss, optimizer, and metrics arguments
-        # # will be covered in a future post.
-        # model.compile(loss='categorical_crossentropy',
-        #               optimizer=optimizers.SGD(lr=0.1, momentum=0.9),
-        #               metrics=['accuracy'])
 
         # compile
         model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=['accuracy'])
@@ -279,6 +229,22 @@ class Harmonizer(object):
         similarity = vector.dot(vectorii) / sqrt(vector.dot(vector) * vectorii.dot(vectorii))
 
         return similarity
+
+    def _deepen(self, shadow):
+        """Deepen the shadow by one layer to pass to CNN.
+
+        Arguments:
+            shadow: two 2 array
+
+        Returns:
+            3-d array
+        """
+
+        # deepen shadow
+        prism = [[[float(entry)] for entry in row] for row in shadow]
+        prism = np.array(prism)
+
+        return prism
 
     def _detect(self, row, number=100, fraction=0.5):
         """Detect a horizontal line by checking a number of points at random.
@@ -785,7 +751,7 @@ class Harmonizer(object):
         """
 
         # construct matrix and targets
-        matrix = np.array([shadow.ravel() for shadow, _ in self.holdouts])
+        matrix = np.array([self._deepen(shadow) for shadow, _ in self.holdouts])
         truths = np.array([truth for _, truth in self.holdouts])
 
         # grade holdout set
@@ -816,13 +782,9 @@ class Harmonizer(object):
 
         # make predictions off of each training sequence
         tallies = {}
-        for index, sample in enumerate(samples):
-
-            # get actual
-            truth = sample[1]
-
-            # get prediction
-            prediction = self.predict([sample[0]])[0]
+        predictions = self.predict([sample[0] for sample in samples])
+        truths = [sample[1] for sample in samples]
+        for prediction, truth in zip(predictions, truths):
 
             # determine if truths match predictions
             # score = self._compare(actual, prediction)
@@ -1153,8 +1115,8 @@ class Harmonizer(object):
         """
 
         # make a matrix from the image
-        vectors = [shadow.ravel() for shadow in shadows]
-        matrix = np.array(vectors)
+        # vectors = [shadow.ravel() for shadow in shadows]
+        matrix = np.array([self._deepen(shadow) for shadow in shadows])
 
         # make prediction
         predictions = self.model.predict(matrix)
@@ -1493,7 +1455,8 @@ class Harmonizer(object):
             eras = self.eras
 
         # construct matrix and targets
-        matrix = np.array([shadow.ravel() for shadow, _ in self.training])
+        # matrix = np.array([shadow.ravel() for shadow, _ in self.training])
+        matrix = np.array([self._deepen(shadow) for shadow, _ in self.training])
         targets = np.array([target for _, target in self.training])
 
         # print status
