@@ -149,7 +149,7 @@ class Harmonizer(object):
         """
 
         # figure out boundary around point
-        vertical, horizontal = point
+        horizontal, vertical = point
         top = vertical - int(self.height / 2)
         bottom = vertical + 1 + int(self.height / 2)
         left = horizontal - int(self.width / 2)
@@ -207,7 +207,7 @@ class Harmonizer(object):
         # divide by two
         vertical = int(height / 2)
         horizontal = int(width / 2)
-        center = vertical, horizontal
+        center = horizontal, vertical
 
         return center
 
@@ -417,11 +417,11 @@ class Harmonizer(object):
         # buffer the image by framing with white
         shadow = [[1] * self.width + row + [1] * self.width for row in shadow]
         shadow = [[1] * len(shadow[0])] * self.height + shadow + [[1] * len(shadow[0])] * self.height
-        center = (int(len(shadow) / 2), int(len(shadow[0]) / 2))
+        center = (int(len(shadow[0]) / 2), int(len(shadow) / 2), )
 
         # reframe
-        shadow = shadow[center[0] - int(self.height / 2): center[0] + 1 + int(self.height / 2)]
-        shadow = [row[center[1] - int(self.width / 2): center[1] + 1 + int(self.width / 2)] for row in shadow]
+        shadow = shadow[center[1] - int(self.height / 2): center[1] + 1 + int(self.height / 2)]
+        shadow = [row[center[0] - int(self.width / 2): center[0] + 1 + int(self.width / 2)] for row in shadow]
         self.shadow = shadow
 
         # reconstruct as RGBA array
@@ -618,7 +618,7 @@ class Harmonizer(object):
                         tile = {}
                         row = line['row']
                         position = line['position']
-                        center = (row, index)
+                        center = (index, row)
                         shadow = self._punch(silhouette, center)
                         tile['position'] = position
                         tile['center'] = center
@@ -913,28 +913,25 @@ class Harmonizer(object):
 
         return None
 
-    def paint(self, *categories):
+    def paint(self, notes):
         """Paint the discovered objects onto the sheet.
 
         Arguments:
-            *categories: unpacked tuple of categories to paint.
+            notes: list of note to paint.
 
         Returns:
             None
         """
 
         # go through each category
+        print('painting {} notes...'.format(len(notes)))
         painting = self.sheet
-        for category in categories:
+        for note in notes:
 
-            # print status
-            print('painting {}...'.format(category))
-            for note in self.discoveries[category]:
-
-                # shade it
-                center = note['center']
-                color = note['color']
-                painting = self.shade(painting, center, color, 8)
+            # shade it
+            center = note['center']
+            color = note['color']
+            painting = self.shade(painting, center, color, 8)
 
         # set it
         self.painting = painting
@@ -957,7 +954,7 @@ class Harmonizer(object):
         for tile in tiles:
 
             # add to list by row
-            row = tile['center'][0]
+            row = tile['center'][1]
             members = grid.setdefault(row, [])
             members.append(tile)
 
@@ -965,7 +962,7 @@ class Harmonizer(object):
         for members in grid.values():
 
             # sort
-            members.sort(key=lambda tile: tile['center'][1])
+            members.sort(key=lambda tile: tile['center'][0])
 
         # organize grid by position
         grid = [item for item in grid.items()]
@@ -1222,7 +1219,7 @@ class Harmonizer(object):
         color = self.palette[color]
 
         # unpack boundary
-        left, right, up, down = self._bound(center)
+        up, down, left, right = self._bound(center)
 
         # make copy so as not to disturb the training data
         image = np.copy(image)
@@ -1231,7 +1228,7 @@ class Harmonizer(object):
         tile = [row[left:right] for row in image[up:down]]
 
         # check image at random
-        if random() < 0.01:
+        if random() < 0.00:
 
             # view image
             self.see(np.array(tile))
@@ -1273,7 +1270,7 @@ class Harmonizer(object):
 
         # punch out at all offsets
         offsets = [(row, column) for row in range(-number, number + 1) for column in range(-number, number + 1)]
-        points = [(center[0] + vertical, center[1] + horizontal) for vertical, horizontal in offsets]
+        points = [(center[1] + vertical, center[0] + horizontal) for vertical, horizontal in offsets]
         smears = [self._punch(pad, point) for point in points]
 
         return smears
