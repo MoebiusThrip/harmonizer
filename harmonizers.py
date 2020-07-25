@@ -60,6 +60,7 @@ class Harmonizer(object):
         self.data = {}
         self.samples = {}
         self.categories = []
+        self.mirror = {}
 
         # training and holdouts
         self.fraction = 0.1
@@ -98,7 +99,7 @@ class Harmonizer(object):
         self.positions = (-2, 15)
 
         # discover properties
-        self.increment = 4
+        self.increment = 8
         self.smearing = 4
         self.criteria = 0.98
         self.discoveries = {}
@@ -302,6 +303,10 @@ class Harmonizer(object):
         # set categories
         categories = ['quarters', 'halves', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
         self.categories = categories
+
+        # set mirror
+        mirror = {category: index for index, category in enumerate(categories)}
+        self.mirror = mirror
 
         # populate data with images
         print('importing images...')
@@ -539,6 +544,35 @@ class Harmonizer(object):
 
         return rows
 
+    def ask(self, category, number=10):
+        """Ask about the top discoveries for a category.
+
+        Arguments:
+            category: str, the category
+            number=10: number of top discoveries
+
+        Returns:
+            None
+        """
+
+        # sort discoveries
+        index = self.mirror[category]
+        discoveries = self.discoveries[category]
+        discoveries.sort(key=lambda discovery: discovery['prediction'][index], reverse=True)
+
+        # view sheet
+        self.see(self.sheet)
+
+        # view top finds and print coordinates
+        print('coordinates...')
+        for discovery in discoveries[:number]:
+
+            # view
+            self.see(discovery['shadow'])
+            print(discovery['center'], discovery['color'])
+
+        return None
+
     def backlight(self, image):
         """Convert an RGBA image into a black and white image.
 
@@ -641,7 +675,8 @@ class Harmonizer(object):
             for index, category in enumerate(self.categories):
 
                 # find elements
-                elements = self.pinpoint(tiles, index)
+                #elements = self.pinpoint(tiles, index)
+                elements = self.select(tiles, index)
                 discoveries[category] += elements
 
         # set discoveries
@@ -1201,6 +1236,22 @@ class Harmonizer(object):
         Image.fromarray(image).show()
 
         return None
+
+    def select(self, tiles, index):
+        """Pinpoint the maxium values for each category.
+
+        Arguments:
+            tiles: list of dicts, the tile objects
+            index: int, index of relevant category
+
+        Returns:
+            list of dicts, the elements
+        """
+
+        # get those tiles with highest score
+        elements = [tile for tile in tiles if max(tile['prediction']) == tile['prediction'][index]]
+
+        return elements
 
     def shade(self, image, center, color, criterion=8):
         """Shade all the dark region in an image with the color of choice.
