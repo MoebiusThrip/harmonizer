@@ -106,6 +106,7 @@ class Harmonizer(object):
 
         # current sheet properties
         self.sheet = None
+        self.painting = None
         self.staff = None
         self.spacing = None
         self.notes = None
@@ -176,8 +177,8 @@ class Harmonizer(object):
         model = Sequential()
 
         # add model layers
-        model.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
-        model.add(Conv2D(32, kernel_size=3, activation='relu'))
+        model.add(Conv2D(2, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
+        # model.add(Conv2D(32, kernel_size=3, activation='relu'))
         model.add(Flatten())
         model.add(Dense(len(self.categories), activation='softmax'))
 
@@ -299,7 +300,7 @@ class Harmonizer(object):
         print('ingesting...')
 
         # set categories
-        categories = ['blanks', 'quarters', 'halves', 'sharps', 'naturals', 'flats']
+        categories = ['blanks', 'quarters']
         self.categories = categories
 
         # populate data with images
@@ -656,90 +657,6 @@ class Harmonizer(object):
 
         return None
 
-
-        #     # make grid
-        #     grid = [triplet for triplet in zip(points, boundaries, predictions)]
-        #     halves = [triplet for triplet in zip(points, boundaries, predictions)]
-        #
-        #     #print('total grid: {}'.format(len(grid)))
-        #     self.grid = grid
-        #
-        #     # find maxima
-        #     grid.sort(key=lambda triplet: triplet[2][1])
-        #     #grid = [triplet for triplet in grid if triplet[2][1] > criteria]
-        #     grid = [triplet for triplet in grid if triplet[2][1] == max(triplet[2])]
-        #
-        #     #print('met criteria: {}'.format(len(grid)))
-        #
-        #     while len(grid) > 0:
-        #
-        #         # add top point to notes
-        #         top = grid.pop()
-        #         vector = [float(entry) for entry in top[2]]
-        #         notes.append((top[1], colors[top[0][0]], top[0], vector, number))
-        #
-        #         # remove any neighbors
-        #         length = len(grid)
-        #         grid = [triplet for triplet in grid if abs(top[0][0] - triplet[0][0]) > 1 or abs(top[0][1] - triplet[0][1]) > 5 * increment]
-        #         #print('{} -> {}: {}'.format(length, len(grid), len(grid) - length))
-        #
-        #     # find maxima
-        #     halves.sort(key=lambda triplet: triplet[2][2])
-        #     #halves = [triplet for triplet in halves if triplet[2][2] > criteria]
-        #     halves = [triplet for triplet in halves if triplet[2][2] == max(triplet[2])]
-        #
-        #     #print('met criteria: {}'.format(len(halves)))
-        #
-        #     while len(halves) > 0:
-        #
-        #         # add top point to notes
-        #         top = halves.pop()
-        #         vector = [float(entry) for entry in top[2]]
-        #         halfnotes.append((top[1], colors[top[0][0]], top[0], vector, number))
-        #
-        #         # remove any neighbors
-        #         length = len(halves)
-        #         halves = [triplet for triplet in halves if abs(top[0][0] - triplet[0][0]) > 1 or abs(top[0][1] - triplet[0][1]) > 5 * increment]
-        #         #print('{} -> {}: {}'.format(length, len(halves), len(halves) - length))
-        #
-        #
-        #     # scores = [(position, boundary, prediction[1], colors[position]) for position, boundary, prediction in zipper]
-        #     #
-        #     # # shade if prediction is high
-        #     # if any([quartet[2] > 0.25 for quartet in scores]):
-        #     #
-        #     #     # add maximum score to notes
-        #     #     scores.sort(key=lambda quartet: quartet[2], reverse=True)
-        #     #     notes.append((scores[0][1], scores[0][3], scores[0][2]))
-        #
-        # # sort notes and halfnotes
-        # notes.sort(key=lambda note: note[0][0])
-        # notes.sort(key=lambda note: note[4])
-        # halfnotes.sort(key=lambda note: note[0][0])
-        # halfnotes.sort(key=lambda note: note[4])
-        #
-        # # set attribute
-        # self.notes = notes
-        # self.halfnotes = halfnotes
-        #
-        # # shade in notes
-        # print('shading notes...')
-        # # for boundary, color, _, _, _ in notes:
-        # #
-        # #     # shade it
-        # #     sheet = self.shade(sheet, boundary, color, 8)
-        #
-        # for boundary, color, _, _, _ in halfnotes:
-        #
-        #     # shade it
-        #     pass
-        #     sheet = self.shade(sheet, boundary, color, 8)
-        #
-        # # see it
-        # self.see(sheet)
-
-        return None
-
     def evaluate(self):
         """Evaluate the model against the holdout set.
 
@@ -993,6 +910,34 @@ class Harmonizer(object):
 
         # set staff
         self.staff = staff
+
+        return None
+
+    def paint(self, *categories):
+        """Paint the discovered objects onto the sheet.
+
+        Arguments:
+            *categories: unpacked tuple of categories to paint.
+
+        Returns:
+            None
+        """
+
+        # go through each category
+        painting = self.sheet
+        for category in categories:
+
+            # print status
+            print('painting {}...'.format(category))
+            for note in self.discoveries[category]:
+
+                # shade it
+                center = note['center']
+                color = note['color']
+                painting = self.shade(painting, center, color, 8)
+
+        # set it
+        self.painting = painting
 
         return None
 
@@ -1260,12 +1205,12 @@ class Harmonizer(object):
 
         return None
 
-    def shade(self, image, boundary, color, criterion=8):
+    def shade(self, image, center, color, criterion=8):
         """Shade all the dark region in an image with the color of choice.
 
         Arguments:
             image: numpy array, the image
-            boundary: (int * 4), the left, right, up, down indices
+            center: (int * 2), the center coordinates
             color: str, key to the palette dict
             criterion=8: int, number of dark neighboring pixels at which to shade
 
@@ -1277,11 +1222,10 @@ class Harmonizer(object):
         color = self.palette[color]
 
         # unpack boundary
-        left, right, up, down = boundary
+        left, right, up, down = self._bound(center)
 
         # make copy so as not to disturb the training data
         image = np.copy(image)
-
 
         # get the tiling subset (still pointing to image)
         tile = [row[left:right] for row in image[up:down]]
@@ -1376,7 +1320,7 @@ class Harmonizer(object):
         colors = {position: label for position, label in zip(positions, labels)}
         self.colors = colors
 
-        return None,
+        return None
 
     def stack(self, index):
         """View the average of training examples.
