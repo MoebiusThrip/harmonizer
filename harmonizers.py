@@ -100,7 +100,7 @@ class Harmonizer(object):
         # discover properties
         self.increment = 4
         self.smearing = 4
-        self.criteria = 0.95
+        self.criteria = 0.98
         self.discoveries = {}
         self.reports = []
 
@@ -177,8 +177,8 @@ class Harmonizer(object):
         model = Sequential()
 
         # add model layers
-        model.add(Conv2D(2, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
-        # model.add(Conv2D(32, kernel_size=3, activation='relu'))
+        model.add(Conv2D(20, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
+        model.add(Conv2D(14, kernel_size=3, activation='relu'))
         model.add(Flatten())
         model.add(Dense(len(self.categories), activation='softmax'))
 
@@ -300,7 +300,7 @@ class Harmonizer(object):
         print('ingesting...')
 
         # set categories
-        categories = ['blanks', 'quarters']
+        categories = ['quarters', 'halves', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
         self.categories = categories
 
         # populate data with images
