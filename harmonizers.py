@@ -21,7 +21,7 @@ import tensorflow
 from tensorflow.keras import optimizers, regularizers
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, Dropout, MaxPooling2D
 from tensorflow.keras.layers import SimpleRNN
 from tensorflow.keras.layers import LSTM
 from tensorflow.keras.layers import Activation
@@ -99,7 +99,7 @@ class Harmonizer(object):
         self.positions = (-2, 15)
 
         # discover properties
-        self.increment = 8
+        self.increment = 4
         self.smearing = 4
         self.criteria = 0.98
         self.discoveries = {}
@@ -178,10 +178,13 @@ class Harmonizer(object):
         model = Sequential()
 
         # add model layers
-        model.add(Conv2D(20, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
-        model.add(Conv2D(14, kernel_size=3, activation='relu'))
+        size = len(self.categories)
+        model.add(Conv2D(size, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
+        model.add(Dropout(0.2))
+        model.add(MaxPooling2D(2))
+        model.add(Conv2D(size * 2, kernel_size=3, activation='relu'))
         model.add(Flatten())
-        model.add(Dense(len(self.categories), activation='softmax'))
+        model.add(Dense(size, activation='softmax'))
 
         # compile
         model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=['accuracy'])
@@ -301,7 +304,7 @@ class Harmonizer(object):
         print('ingesting...')
 
         # set categories
-        categories = ['quarters', 'halves', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
+        categories = ['quarters', 'halves', 'sharps', 'flats', 'naturals', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
         self.categories = categories
 
         # set mirror
@@ -544,12 +547,12 @@ class Harmonizer(object):
 
         return rows
 
-    def ask(self, category, number=10):
+    def ask(self, number, category):
         """Ask about the top discoveries for a category.
 
         Arguments:
-            category: str, the category
             number=10: number of top discoveries
+            category: str, the category
 
         Returns:
             None
@@ -560,8 +563,12 @@ class Harmonizer(object):
         discoveries = self.discoveries[category]
         discoveries.sort(key=lambda discovery: discovery['prediction'][index], reverse=True)
 
-        # view sheet
-        self.see(self.sheet)
+        # clip
+        discoveries = discoveries[:number]
+
+        # paint sheet
+        self.paint(discoveries)
+        self.see(self.painting)
 
         # view top finds and print coordinates
         print('coordinates...')
@@ -569,7 +576,7 @@ class Harmonizer(object):
 
             # view
             self.see(discovery['shadow'])
-            print(discovery['center'], discovery['color'])
+            print(discovery['center'], discovery['color'], discovery['prediction'][index])
 
         return None
 
@@ -614,12 +621,15 @@ class Harmonizer(object):
 
         Sets:
             self.notes
+            self.sheet
+            self.painting
         """
 
         # get file and convert
         sheet = Image.open(name).convert('RGBA')
         sheet = np.array(sheet)
         self.sheet = sheet
+        self.painting = sheet
 
         # making silhouette
         print('making silhouette...')
@@ -675,7 +685,7 @@ class Harmonizer(object):
             for index, category in enumerate(self.categories):
 
                 # find elements
-                #elements = self.pinpoint(tiles, index)
+                # elements = self.pinpoint(tiles, index)
                 elements = self.select(tiles, index)
                 discoveries[category] += elements
 
@@ -688,7 +698,7 @@ class Harmonizer(object):
         for category in self.categories:
 
             # print report
-            print('{} {}'.format(len(discoveries[category]), category))
+                print('{} {}'.format(len(discoveries[category]), category))
 
         return None
 
@@ -948,11 +958,12 @@ class Harmonizer(object):
 
         return None
 
-    def paint(self, notes):
+    def paint(self, notes, monocolor=None):
         """Paint the discovered objects onto the sheet.
 
         Arguments:
             notes: list of note to paint.
+            monocolor=None: specific color to use
 
         Returns:
             None
@@ -965,7 +976,7 @@ class Harmonizer(object):
 
             # shade it
             center = note['center']
-            color = note['color']
+            color = monocolor or note['color']
             painting = self.shade(painting, center, color, 8)
 
         # set it
@@ -1040,6 +1051,9 @@ class Harmonizer(object):
 
                     # add to maxima
                     maxima.append(tile)
+
+        # select only those that are also the chosen category
+        maxima = self.select(maxima, category)
 
         return maxima
 
@@ -1216,7 +1230,7 @@ class Harmonizer(object):
 
         return None
 
-    def see(self, image):
+    def see(self, image=None):
         """See an image based on a np array.
 
         Arguments:
@@ -1225,6 +1239,12 @@ class Harmonizer(object):
         Returns:
             None
         """
+
+        # default image
+        if not image:
+
+            # to painting
+            image = self.painting
 
         # check if it is a shadow
         if len(image.shape) < 3:
