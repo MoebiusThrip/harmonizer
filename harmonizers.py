@@ -561,23 +561,23 @@ class Harmonizer(object):
 
         # sort discoveries
         index = self.mirror[category]
-        discoveries = self.discoveries[category]
+        discoveries = self.tiles[category]
         discoveries.sort(key=lambda discovery: discovery['prediction'][index], reverse=True)
 
-        # clip
+        # clip to requested number
         discoveries = discoveries[:number]
 
-        # paint sheet
-        self.paint(discoveries)
-        self.see(self.painting)
+        # get chunk size
+        chunk = int(number / 4) + 1
+        colors = ('orange', 'magenta', 'green', 'blue')
+        for index, color in zip(range(4), colors):
 
-        # view top finds and print coordinates
-        print('coordinates...')
-        for discovery in discoveries[:number]:
+            # paint the chunk
+            self.spot(discoveries[chunk * index: chunk * (index + 1)], color)
+            self.keep()
 
-            # view
-            self.see(discovery['shadow'])
-            print(discovery['center'], discovery['color'], discovery['prediction'][index])
+        # see painting
+        self.see()
 
         return None
 
@@ -1347,6 +1347,10 @@ class Harmonizer(object):
 
         # get those tiles with highest score
         elements = [tile for tile in tiles if max(tile['prediction']) == tile['prediction'][index]]
+
+        # add attributes
+        category = self.categories[index]
+        [element.update({'category': category, 'score': element['prediction'][index]}) for element in elements]
 
         return elements
 
