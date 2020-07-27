@@ -108,6 +108,7 @@ class Harmonizer(object):
         # current sheet properties
         self.sheet = None
         self.painting = None
+        self.orginal = None
         self.staff = None
         self.spacing = None
         self.notes = None
@@ -610,13 +611,14 @@ class Harmonizer(object):
 
         return shadow
 
-    def box(self, image, center, color):
+    def box(self, image, center, color, thickness):
         """Draw a box around the center point.
 
         Arguments:
             image: numpy array, the image
             center: (int * 2), the center coordinates
             color: str, key to the palette dict
+            thickness: int, thickness of framing box
 
         Returns:
             None
@@ -634,18 +636,40 @@ class Harmonizer(object):
         # paint the top and bottom
         for horizontal in range(left, right):
 
-            # paint points
-            image[up][horizontal] = color
-            image[down][horizontal] = color
+            # at each thickness
+            for offset in range(thickness):
+
+                # paint points
+                image[up + offset][horizontal] = color
+                image[down - offset][horizontal] = color
 
         # paint the sides
         for vertical in range(up, down):
 
-            # paint the points
-            image[left][vertical] = color
-            image[right][vertical] = color
+            # at each thickness
+            for offset in range(thickness):
+
+                # paint the points
+                image[vertical][left + offset] = color
+                image[vertical][right - offset] = color
 
         return image
+
+    def clear(self):
+        """Reset current painting to the original.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # reset sheets
+        self.sheet = self.original
+        self.painting = self.sheet
+
+        return None
 
     def discover(self, name='concerto.png'):
         """Discover the notes in an image file.
@@ -665,6 +689,7 @@ class Harmonizer(object):
         # get file and convert
         sheet = Image.open(name).convert('RGBA')
         sheet = np.array(sheet)
+        self.original = sheet
         self.sheet = sheet
         self.painting = sheet
 
@@ -725,6 +750,9 @@ class Harmonizer(object):
                 # elements = self.pinpoint(tiles, index)
                 elements = self.select(tiles, index)
                 discoveries[category] += elements
+
+        # transform discoveries to ordered list
+        discoveries = [discoveries[category] for category in self.categories]
 
         # set discoveries
         self.reports = reports
@@ -1397,6 +1425,33 @@ class Harmonizer(object):
         smears = [self._punch(pad, point) for point in points]
 
         return smears
+
+    def spot(self, notes, monocolor=None, thickness=3):
+        """Paint the discovered objects onto the sheet.
+
+        Arguments:
+            notes: list of note to paint.
+            monocolor=None: specific color to use
+            thickness=3: int, thickness of framing box
+
+        Returns:
+            None
+        """
+
+        # go through each category
+        print('spotting {} notes...'.format(len(notes)))
+        painting = self.sheet
+        for note in notes:
+
+            # shade it
+            center = note['center']
+            color = monocolor or note['color']
+            painting = self.box(painting, center, color, thickness)
+
+        # set it
+        self.painting = painting
+
+        return None
 
     def squeeze(self):
         """Squeeze out the palette.
