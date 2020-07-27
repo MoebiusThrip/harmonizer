@@ -180,10 +180,10 @@ class Harmonizer(object):
 
         # add model layers
         size = len(self.categories)
-        model.add(Conv2D(size, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
+        model.add(Conv2D(size * 2, kernel_size=3, activation='relu', input_shape=(self.width, self.height, 1)))
         model.add(Dropout(0.2))
         model.add(MaxPooling2D(2))
-        model.add(Conv2D(size * 2, kernel_size=3, activation='relu'))
+        model.add(Conv2D(size * 4, kernel_size=3, activation='relu'))
         model.add(Flatten())
         model.add(Dense(size, activation='softmax'))
 
@@ -1318,7 +1318,7 @@ class Harmonizer(object):
         """
 
         # default image
-        if not image:
+        if image is None:
 
             # to painting
             image = self.painting
