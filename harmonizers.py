@@ -1697,9 +1697,9 @@ class Harmonizer(object):
 
 
 # # load harmonizer
-harmonizer = Harmonizer()
-harmonizer.prepare()
-harmonizer.load()
+harmo = Harmonizer()
+harmo.prepare()
+harmo.load()
 
 # status
 print('imported harmonizers.')
