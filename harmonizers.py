@@ -102,7 +102,7 @@ class Harmonizer(object):
         self.increment = 12
         self.smearing = 4
         self.criteria = 0.98
-        self.discoveries = {}
+        self.tiles = {}
         self.reports = []
 
         # current sheet properties
@@ -751,12 +751,9 @@ class Harmonizer(object):
                 elements = self.select(tiles, index)
                 discoveries[category] += elements
 
-        # transform discoveries to ordered list
-        discoveries = [discoveries[category] for category in self.categories]
-
         # set discoveries
         self.reports = reports
-        self.discoveries = discoveries
+        self.tiles = discoveries
 
         # report
         print(' ')
