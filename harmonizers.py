@@ -99,7 +99,7 @@ class Harmonizer(object):
         self.positions = (-2, 15)
 
         # discover properties
-        self.increment = 4
+        self.increment = 12
         self.smearing = 4
         self.criteria = 0.98
         self.discoveries = {}
@@ -610,6 +610,43 @@ class Harmonizer(object):
 
         return shadow
 
+    def box(self, image, center, color):
+        """Draw a box around the center point.
+
+        Arguments:
+            image: numpy array, the image
+            center: (int * 2), the center coordinates
+            color: str, key to the palette dict
+
+        Returns:
+            None
+        """
+
+        # get color from the palette
+        color = self.palette[color]
+
+        # unpack boundary
+        up, down, left, right = self._bound(center)
+
+        # make copy so as not to disturb the training data
+        image = np.copy(image)
+
+        # paint the top and bottom
+        for horizontal in range(left, right):
+
+            # paint points
+            image[up][horizontal] = color
+            image[down][horizontal] = color
+
+        # paint the sides
+        for vertical in range(up, down):
+
+            # paint the points
+            image[left][vertical] = color
+            image[right][vertical] = color
+
+        return image
+
     def discover(self, name='concerto.png'):
         """Discover the notes in an image file.
 
@@ -846,6 +883,21 @@ class Harmonizer(object):
 
             # see
             self.see(image)
+
+        return None
+
+    def keep(self):
+        """Keep the current painting as the base sheet.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # set painting as sheet
+        self.sheet = self.painting
 
         return None
 
