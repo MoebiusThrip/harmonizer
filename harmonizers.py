@@ -110,6 +110,7 @@ class Harmonizer(object):
         self.painting = None
         self.orginal = None
         self.staff = None
+        self.measures = None
         self.spacing = None
         self.notes = None
 
@@ -701,6 +702,10 @@ class Harmonizer(object):
         print('finding staff...')
         self.notch(silhouette)
 
+        # get measures
+        print('finding measures...')
+        self.measure(silhouette)
+
         # check along each staff line
         print('finding notes...')
         reports = []
@@ -962,6 +967,57 @@ class Harmonizer(object):
 
         return None
 
+    def measure(self, silhouette):
+        """Break the staff into measures by detecting vertical lines along each staff.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Sets:
+            self.measures
+        """
+
+        # set left and right
+        left = 0
+        right = len(silhouette[0])
+
+        # go through each stave
+        measures = []
+        for stave in self.staff:
+
+            # set top and bottom
+            top = stave[9]
+            bottom = stave[1]
+
+            # get all columns
+            columns = []
+            for horizontal in range(left, right):
+
+                # get column
+                column = [float(silhouette[vertical][horizontal]) for vertical in range(top, bottom)]
+                columns.append(column)
+
+            # detect all possible columns
+            candidates = [(index, column) for index, column in enumerate(columns) if self._detect(column, 40, 0.9)]
+
+            # check all points for each
+            pipes = [pair[0] for pair in candidates if all([entry < -0.3 for entry in pair[1]])]
+
+            # get rid of duplicates
+            pipes = [pipe for pipe in pipes if pipe + 1 not in pipes]
+
+            print(pipes)
+
+            measures.append(pipes)
+
+        # set attribue
+        self.measures = measures
+
+        return None
+
     def notch(self, silhouette):
         """Find all the horizontal black lines.
 
@@ -1026,8 +1082,7 @@ class Harmonizer(object):
             stave.update({position: {'position': position, 'row': ledging(position)} for position in ledges})
 
             # add to staff
-            stave = [value for value in stave.values()]
-            stave.sort(key=lambda entry: entry['position'])
+            stave = {value['position']: value['row'] for value in stave.values()}
             staff.append(stave)
 
         # set staff
@@ -1707,43 +1762,6 @@ harmo.load()
 
 # status
 print('imported harmonizers.')
-
-
-# train harmonizer
-if __name__=='__main__':
-
-    # # build Ensemble and test
-    # #harmonizer = Ensemble(5)
-    # harmonizer = Harmonizer()
-    # harmonizer.prepare()
-    # harmonizer.train()
-    # harmonizer.test()
-
-    # build and train harmonizer
-    harmonizer = Harmonizer()
-    harmonizer.prepare()
-    harmonizer.train(grade=5)
-
-    # test random training samples
-    harmonizer.test()
-
-    # # print sequeces
-    # for sequence in harmonizer.sequences:
-    #     print(sequence)
-
-    # evaluate holdout set
-    harmonizer.evaluate()
-    harmonizer.grade()
-
-    # request push to S3
-    decision = input("Push to S3? ")
-    if decision in ('', ' ', 'yes', 'Yes', 'Y', 'y'):
-
-        # push
-        harmonizer.push()
-
-    # record latest build
-    harmonizer.record()
 
 
 
