@@ -1009,9 +1009,30 @@ class Harmonizer(object):
             # get rid of duplicates
             pipes = [pipe for pipe in pipes if pipe + 1 not in pipes]
 
-            print(pipes)
+            # get all vertical indices for white space not at staff lines
+            indices = [index for index in range(top, bottom)]
+            indices = [index for index in indices if all([abs(index - row) > 3 for row in stave.values()])]
 
-            measures.append(pipes)
+            # verify that pipes are legitamate
+            verified = []
+            for pipe in pipes:
+
+                # check for whiles
+                lefts = [silhouette[index][pipe - 3] for index in indices]
+                rights = [silhouette[index][pipe + 3] for index in indices]
+                if all([float(entry) > 0.4 for entry in lefts + rights]):
+
+                    # add to verified
+                    verified.append(pipe)
+
+            # add a measure for each pipe
+            start = left
+            for pipe in verified:
+
+                # make measure
+                measure = {'positions': stave, 'left': start, 'right': pipe}
+                measures.append(measure)
+                start = pipe
 
         # set attribue
         self.measures = measures
