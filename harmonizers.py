@@ -709,32 +709,31 @@ class Harmonizer(object):
         # check along each staff line
         print('finding notes...')
         reports = []
-        discoveries = {category:[] for category in self.categories}
-        for number, stave in enumerate(self.staff):
+        discoveries = {category: [] for category in self.categories}
+        for number, measure in enumerate(self.measures):
 
             # status
-            print('stave {} of {}...'.format(number, len(self.staff)))
+            print('measure {} of {}...'.format(number, len(self.measures)))
 
             # for each pixel
             tiles = []
-            for index, _ in enumerate(silhouette[0]):
+            for index in range(measure['left'], measure['right']):
 
                 # mark boundaries
                 if self.width < index < len(silhouette[0]) - self.width and index % self.increment == 0:
 
                     # for each position
-                    for line in stave:
+                    for position in range(self.positions[0], self.positions[1] + 1):
 
                         # make tile
                         tile = {}
-                        row = line['row']
-                        position = line['position']
+                        row = measure[position]
                         center = (index, row)
                         shadow = self._punch(silhouette, center)
                         tile['position'] = position
                         tile['center'] = center
                         tile['shadow'] = shadow
-                        tile['stave'] = number
+                        tile['measure'] = number
                         tile['color'] = self.colors[position]
                         tiles.append(tile)
 
@@ -755,6 +754,7 @@ class Harmonizer(object):
                 # elements = self.pinpoint(tiles, index)
                 elements = self.select(tiles, index)
                 discoveries[category] += elements
+                measure[category] = elements
 
         # set discoveries
         self.reports = reports
