@@ -1030,7 +1030,8 @@ class Harmonizer(object):
             for pipe in verified:
 
                 # make measure
-                measure = {'positions': stave, 'left': start, 'right': pipe}
+                measure = {'left': start, 'right': pipe}
+                measure.update(stave)
                 measures.append(measure)
                 start = pipe
 
