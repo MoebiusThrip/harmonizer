@@ -102,11 +102,11 @@ class Harmonizer(object):
         self.increment = 12
         self.smearing = 4
         self.criteria = 0.98
-        self.tiles = {}
         self.reports = []
 
         # current sheet properties
         self.sheet = None
+        self.original = None
         self.painting = None
         self.orginal = None
         self.staff = None
@@ -672,6 +672,45 @@ class Harmonizer(object):
 
         return None
 
+    def coalesce(self, tiles, category, width=25, height=25):
+        """Coalesce several overlapping detections into a single centered detections.
+
+        Arguments:
+            tiles: list of dicts
+            category: str, the category
+            width=25: width of insert
+            height=25: height of insert
+
+        Returns:
+            list of dicts
+        """
+
+        # begin elements
+        elements = []
+
+        # vertical and horizontal margins
+        margin = (self.width - width) / 2
+        marginii = (self.height - height) / 2
+
+        # begin centers
+        centers = []
+        for tile in tiles:
+
+            # get center
+            center = tile['center']
+
+            # go through all horizontal points
+            for horizontal in range(-margin, margin + 1):
+
+                # go through all vertical points
+                for vertical in range(-marginii, marginii + 1):
+
+                    # add point to centers
+                    point = (center[0] + horizontal, center[1] + vertical)
+                    centers.append(point)
+
+        return elements
+
     def discover(self, name='concerto.png'):
         """Discover the notes in an image file.
 
@@ -709,7 +748,6 @@ class Harmonizer(object):
         # check along each staff line
         print('finding notes...')
         reports = []
-        discoveries = {category: [] for category in self.categories}
         for number, measure in enumerate(self.measures):
 
             # status
@@ -753,12 +791,10 @@ class Harmonizer(object):
                 # find elements
                 # elements = self.pinpoint(tiles, index)
                 elements = self.select(tiles, index)
-                discoveries[category] += elements
                 measure[category] = elements
 
         # set discoveries
         self.reports = reports
-        self.tiles = discoveries
 
         # report
         print(' ')
