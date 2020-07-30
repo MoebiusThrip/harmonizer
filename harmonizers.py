@@ -746,9 +746,6 @@ class Harmonizer(object):
             list of dicts
         """
 
-        # begin elements
-        elements = []
-
         # vertical and horizontal margins
         margin = (self.width - width) / 2
         marginii = (self.height - height) / 2
@@ -776,6 +773,9 @@ class Harmonizer(object):
         # get new punchouts and mask them
         punches = [self._punch(silhouette, center, width, height) for center in centers]
         masks = [self._mask(punch) for punch in punches]
+
+        # predict from masks
+        predictions = self.predict(masks)
 
         return masks
 
