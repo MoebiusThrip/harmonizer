@@ -141,22 +141,37 @@ class Harmonizer(object):
 
         return expansions
 
-    def _bound(self, point):
+    def _bound(self, point, width=None, height=None):
         """Determine standard sized-boundary around point.
 
         Arguments:
             point: (int, int) tuple
+            width=None: int, the width
+            height=None: int, the height
 
         Returns:
             (int, int, int, int) tuple
         """
 
-        # figure out boundary around point
+        # set default width
+        if not width:
+
+            # set width
+            width = self.width
+
+        # set default height
+
+            # set height
+            height = self.height
+
+        # set center
         horizontal, vertical = point
-        top = vertical - int(self.height / 2)
-        bottom = vertical + 1 + int(self.height / 2)
-        left = horizontal - int(self.width / 2)
-        right = horizontal + 1 + int(self.width / 2)
+
+        # calculate bounding points
+        top = vertical - int(height / 2)
+        bottom = vertical + 1 + int(height / 2)
+        left = horizontal - int(width / 2)
+        right = horizontal + 1 + int(width / 2)
 
         return top, bottom, left, right
 
@@ -390,6 +405,38 @@ class Harmonizer(object):
 
         return None
 
+    def _mask(self, shadow):
+        """Surround a small shadow with zeroes to fill in the frames.
+
+        Arguments:
+            shadow: numpy array
+
+        Returns:
+            numpy array
+        """
+
+        # create array of zeroes
+        mask = numpy.zeroes(self.width, self.height)
+
+        # get height and width of shadow
+        width = len(shadow[0])
+        height = len(shadow)
+
+        # find margins
+        margin = (self.width - width) / 2
+        marginii = (self.height - height) / 2
+
+        # replace rows
+        for row in (marginii, height + marginii + 1):
+
+            # replace columns
+            for column in (margin, width + margin + 1):
+
+                # replace entry
+                mask[row][column] = shadow[row - marginii][column - margin]
+
+        return mask
+
     def _measure(self, vector, vectorii):
         """Compare two vectors by euclidean distance.
 
@@ -484,19 +531,32 @@ class Harmonizer(object):
 
         return pad
 
-    def _punch(self, shadow, point):
+    def _punch(self, shadow, point, width=None, height=None):
         """Punch out a standard sized shadow from a bigger shadow at specified point.
 
         Arguments:
             shadow: numpy array
             point: (int, int) tuple of indices
+            width=None: int, width of punchout
+            height=None: int, height of punchout
 
         Returns:
             numpy array
         """
 
+        # set default width
+        if not width:
+
+            # set width
+            width = self.width
+
+        # set default height
+
+            # set height
+            height = self.height
+
         # figure out boundary
-        top, bottom, left, right = self._bound(point)
+        top, bottom, left, right = self._bound(point, width, height)
         punchout = shadow[top:bottom, left:right]
 
         return punchout
@@ -672,11 +732,12 @@ class Harmonizer(object):
 
         return None
 
-    def coalesce(self, tiles, category, width=25, height=25):
+    def coalesce(self, tiles, silhouette, category, width=25, height=25):
         """Coalesce several overlapping detections into a single centered detections.
 
         Arguments:
             tiles: list of dicts
+            silhouette: greater silhouette
             category: str, the category
             width=25: width of insert
             height=25: height of insert
@@ -708,6 +769,15 @@ class Harmonizer(object):
                     # add point to centers
                     point = (center[0] + horizontal, center[1] + vertical)
                     centers.append(point)
+
+        # remove duplicates
+        centers = list(set(centers))
+
+        # get new punchouts
+        punches = [self._punch(silhouette, center, width, height) for center in centers]
+
+
+
 
         return elements
 
