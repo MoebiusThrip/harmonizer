@@ -5,7 +5,7 @@ __author__ = 'TheOz'
 # import system tools
 from importlib import reload
 import json, csv, os, sys
-import numpy as np
+import numpy
 from time import clock, time
 from random import random, choice
 from datetime import datetime
@@ -244,8 +244,8 @@ class Harmonizer(object):
         """
 
         # make into numpy arrays
-        vector = np.array(vector)
-        vectorii = np.array(vectorii)
+        vector = numpy.array(vector)
+        vectorii = numpy.array(vectorii)
 
         # compute the cosine similarity
         similarity = vector.dot(vectorii) / sqrt(vector.dot(vector) * vectorii.dot(vectorii))
@@ -264,7 +264,7 @@ class Harmonizer(object):
 
         # deepen shadow
         prism = [[[float(entry)] for entry in row] for row in shadow]
-        prism = np.array(prism)
+        prism = numpy.array(prism)
 
         return prism
 
@@ -338,7 +338,7 @@ class Harmonizer(object):
 
                 # get image file
                 image = Image.open(category + '/' + name).convert('RGBA')
-                image = np.array(image)
+                image = numpy.array(image)
 
                 # add to data
                 data[category].append(image)
@@ -415,22 +415,22 @@ class Harmonizer(object):
             numpy array
         """
 
-        # create array of zeroes
-        mask = numpy.zeroes(self.width, self.height)
+        # create array of zeros
+        mask = numpy.zeros((self.width, self.height))
 
         # get height and width of shadow
         width = len(shadow[0])
         height = len(shadow)
 
         # find margins
-        margin = (self.width - width) / 2
-        marginii = (self.height - height) / 2
+        margin = int((self.width - width) / 2)
+        marginii = int((self.height - height) / 2)
 
         # replace rows
-        for row in (marginii, height + marginii + 1):
+        for row in range(marginii, height + marginii):
 
             # replace columns
-            for column in (margin, width + margin + 1):
+            for column in range(margin, width + margin):
 
                 # replace entry
                 mask[row][column] = shadow[row - marginii][column - margin]
@@ -449,12 +449,12 @@ class Harmonizer(object):
         """
 
         # make into numpy arrays
-        vector = np.array(vector)
-        vectorii = np.array(vectorii)
+        vector = numpy.array(vector)
+        vectorii = numpy.array(vectorii)
 
         # compute the euclidean distance
         #distance = sum([(entry - entryii) ** 2 for entry, entryii in zip(vector, vectorii)])
-        distance = np.linalg.norm(vector-vectorii)
+        distance = numpy.linalg.norm(vector-vectorii)
 
         return distance
 
@@ -504,8 +504,8 @@ class Harmonizer(object):
             # append to image
             reconstruction.append(rowii)
 
-        # convert to np.array
-        reconstruction = np.array(reconstruction, dtype='uint8')
+        # convert to numpy.array
+        reconstruction = numpy.array(reconstruction, dtype='uint8')
 
         #print(reconstruction.shape)
 
@@ -522,12 +522,12 @@ class Harmonizer(object):
         """
 
         # make vertical margins
-        margin = np.zeros((self.height, shadow.shape[1]))
-        pad = np.vstack((margin, shadow, margin))
+        margin = numpy.zeros((self.height, shadow.shape[1]))
+        pad = numpy.vstack((margin, shadow, margin))
 
         # make horizontal margins
-        margin = np.ones((pad.shape[0], self.width))
-        pad = np.hstack((margin, pad, margin))
+        margin = numpy.ones((pad.shape[0], self.width))
+        pad = numpy.hstack((margin, pad, margin))
 
         return pad
 
@@ -668,7 +668,7 @@ class Harmonizer(object):
             shadow.append(rowii)
 
         # make into numpy array
-        shadow = np.array(shadow)
+        shadow = numpy.array(shadow)
 
         return shadow
 
@@ -692,7 +692,7 @@ class Harmonizer(object):
         up, down, left, right = self._bound(center)
 
         # make copy so as not to disturb the training data
-        image = np.copy(image)
+        image = numpy.copy(image)
 
         # paint the top and bottom
         for horizontal in range(left, right):
@@ -773,13 +773,11 @@ class Harmonizer(object):
         # remove duplicates
         centers = list(set(centers))
 
-        # get new punchouts
+        # get new punchouts and mask them
         punches = [self._punch(silhouette, center, width, height) for center in centers]
+        masks = [self._mask(punch) for punch in punches]
 
-
-
-
-        return elements
+        return masks
 
     def discover(self, name='concerto.png'):
         """Discover the notes in an image file.
@@ -798,7 +796,7 @@ class Harmonizer(object):
 
         # get file and convert
         sheet = Image.open(name).convert('RGBA')
-        sheet = np.array(sheet)
+        sheet = numpy.array(sheet)
         self.original = sheet
         self.sheet = sheet
         self.painting = sheet
@@ -814,6 +812,9 @@ class Harmonizer(object):
         # get measures
         print('finding measures...')
         self.measure(silhouette)
+
+        # begin discoveries
+        discoveries = {category: [] for category in self.categories}
 
         # check along each staff line
         print('finding notes...')
@@ -859,12 +860,12 @@ class Harmonizer(object):
             for index, category in enumerate(self.categories):
 
                 # find elements
-                # elements = self.pinpoint(tiles, index)
                 elements = self.select(tiles, index)
-                measure[category] = elements
+                discoveries[category] += elements
 
         # set discoveries
         self.reports = reports
+        self.tiles = discoveries
 
         # report
         print(' ')
@@ -886,8 +887,8 @@ class Harmonizer(object):
         """
 
         # construct matrix and targets
-        matrix = np.array([self._deepen(shadow) for shadow, _ in self.holdouts])
-        truths = np.array([truth for _, truth in self.holdouts])
+        matrix = numpy.array([self._deepen(shadow) for shadow, _ in self.holdouts])
+        truths = numpy.array([truth for _, truth in self.holdouts])
 
         # grade holdout set
         self.grade(self.holdouts, name='holdout set')
@@ -945,10 +946,10 @@ class Harmonizer(object):
         """Convert a two dimension shadow to a three dimensional grayscale image.
 
         Arguments:
-            shadow: np.array
+            shadow: numpy.array
 
         Returns:
-            np.array
+            numpy.array
         """
 
         # expanding into rgb function
@@ -956,7 +957,7 @@ class Harmonizer(object):
 
         # construct hologram
         hologram = [[expanding(entry + 0.5) for entry in row] for row in shadow]
-        hologram = np.array(hologram,  dtype=np.uint8)
+        hologram = numpy.array(hologram,  dtype=numpy.uint8)
 
         return hologram
 
@@ -1006,7 +1007,7 @@ class Harmonizer(object):
         # normalize and square into image
         normalization = self._scale(neuron)
         square = self._square(normalization, self.height)
-        image = np.array(square)
+        image = numpy.array(square)
 
         # pixelate
         if not see:
@@ -1367,7 +1368,7 @@ class Harmonizer(object):
 
         # make a matrix from the image
         # vectors = [shadow.ravel() for shadow in shadows]
-        matrix = np.array([self._deepen(shadow) for shadow in shadows])
+        matrix = numpy.array([self._deepen(shadow) for shadow in shadows])
 
         # make prediction
         predictions = self.model.predict(matrix)
@@ -1457,7 +1458,7 @@ class Harmonizer(object):
         predictions = self._scale(predictions)
         height = self.positions[1] - self.positions[0] + 1
         predictions = self._square(predictions, height)
-        image = np.array(predictions)
+        image = numpy.array(predictions)
 
         # view
         self.see(image)
@@ -1557,7 +1558,7 @@ class Harmonizer(object):
         up, down, left, right = self._bound(center)
 
         # make copy so as not to disturb the training data
-        image = np.copy(image)
+        image = numpy.copy(image)
 
         # get the tiling subset (still pointing to image)
         tile = [row[left:right] for row in image[up:down]]
@@ -1566,7 +1567,7 @@ class Harmonizer(object):
         if random() < 0.00:
 
             # view image
-            self.see(np.array(tile))
+            self.see(numpy.array(tile))
 
         # make a shadow
         shadow = self.backlight(tile)
@@ -1708,7 +1709,7 @@ class Harmonizer(object):
         squared = self._square(scaled, self.height)
 
         # make image
-        image = np.array(squared)
+        image = numpy.array(squared)
         self.see(image)
 
         return None
@@ -1758,9 +1759,9 @@ class Harmonizer(object):
             eras = self.eras
 
         # construct matrix and targets
-        # matrix = np.array([shadow.ravel() for shadow, _ in self.training])
-        matrix = np.array([self._deepen(shadow) for shadow, _ in self.training])
-        targets = np.array([target for _, target in self.training])
+        # matrix = numpy.array([shadow.ravel() for shadow, _ in self.training])
+        matrix = numpy.array([self._deepen(shadow) for shadow, _ in self.training])
+        targets = numpy.array([target for _, target in self.training])
 
         # print status
         print('training {} eras of {} epochs each...'.format(eras, epochs))
@@ -1775,8 +1776,8 @@ class Harmonizer(object):
             indices.sort(key=lambda index: random())
 
             # reconstitute shuffled matrices
-            matrix = np.array([matrix[index] for index in indices])
-            targets = np.array([targets[index] for index in indices])
+            matrix = numpy.array([matrix[index] for index in indices])
+            targets = numpy.array([targets[index] for index in indices])
 
             # and each epoch, only verbose on last
             verbosity = [False] * (epochs - 1) + [True]
