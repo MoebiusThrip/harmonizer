@@ -14,6 +14,10 @@ from math import sqrt
 # import pil and skimage
 from PIL import Image
 
+# import sklearn
+from sklearn.cluster import AffinityPropagation, MeanShift
+
+
 # import tensorflow
 import tensorflow
 
@@ -106,6 +110,7 @@ class Harmonizer(object):
 
         # current sheet properties
         self.sheet = None
+        self.silhouette = None
         self.original = None
         self.painting = None
         self.orginal = None
@@ -747,8 +752,8 @@ class Harmonizer(object):
         """
 
         # vertical and horizontal margins
-        margin = (self.width - width) / 2
-        marginii = (self.height - height) / 2
+        margin = int((self.width - width) / 2)
+        marginii = int((self.height - height) / 2)
 
         # begin centers
         centers = []
@@ -777,7 +782,18 @@ class Harmonizer(object):
         # predict from masks
         predictions = self.predict(masks)
 
-        return masks
+        # get category index
+        index = self.mirror[category]
+
+        # get all predicted centers
+        points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
+
+        # get matrix and cluster
+        matrix = numpy.array(points)
+        propagation = MeanShift(bandwidth=10, bin_seeding=True).fit(matrix)
+        labels = list(set(propagation.labels_))
+
+        return points
 
     def discover(self, name='concerto.png'):
         """Discover the notes in an image file.
@@ -804,6 +820,7 @@ class Harmonizer(object):
         # making silhouette
         print('making silhouette...')
         silhouette = self.backlight(sheet)
+        self.silhouette = silhouette
 
         # make staff
         print('finding staff...')
@@ -861,6 +878,9 @@ class Harmonizer(object):
 
                 # find elements
                 elements = self.select(tiles, index)
+
+                #self.coalesce(elements, silhouette, category)
+
                 discoveries[category] += elements
 
         # set discoveries
