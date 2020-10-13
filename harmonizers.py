@@ -113,11 +113,12 @@ class Harmonizer(object):
         self.silhouette = None
         self.original = None
         self.painting = None
-        self.orginal = None
+        self.original = None
         self.staff = None
         self.measures = None
         self.spacing = None
         self.notes = None
+        self.tiles = None
 
         return
 
@@ -738,7 +739,7 @@ class Harmonizer(object):
         return None
 
     def coalesce(self, tiles, silhouette, category, width=25, height=25):
-        """Coalesce several overlapping detections into a single centered detections.
+        """Coalesce several overlapping detections into single centered detections.
 
         Arguments:
             tiles: list of dicts
@@ -788,12 +789,33 @@ class Harmonizer(object):
         # get all predicted centers
         points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
 
-        # get matrix and cluster
+        # make matrix and cluster
         matrix = numpy.array(points)
         propagation = MeanShift(bandwidth=10, bin_seeding=True).fit(matrix)
         labels = list(set(propagation.labels_))
 
-        return points
+        # get average horizontal and vertical of each label
+        condensations = []
+        for label in labels:
+
+            # get subset of points with that label
+            subset = [row for row, cluster in zip(rows, labels) if cluster == label]
+
+            # get averages
+            horizontal = int(numpy.average([row[0] for row in subset]))
+            vertical = int(numpy.average([row[1] for row in subset]))
+
+            # nudge vertical to closest staff line
+            staves = [value for stave in self.staff for value in stave.values()]
+            squares = [(vertical - verticalii) ** 2 for verticalii in staves]
+            zipper = [pair for pair in zip(staves, squares)]
+            zipper.sort(key=lambda pair: pair[1])
+            vertical = zipper[0][0]
+
+            # add average to reductions
+            condensations.append((horizontal, vertical))
+
+        return condensations
 
     def discover(self, name='concerto.png'):
         """Discover the notes in an image file.
@@ -1266,7 +1288,7 @@ class Harmonizer(object):
         return None
 
     def pinpoint(self, tiles, category):
-        """Pinpoint the maxium values for each category.
+        """Pinpoint the maximum values for each category.
 
         Arguments:
             tiles: list of dicts, the tile objects
@@ -1539,7 +1561,7 @@ class Harmonizer(object):
         return None
 
     def select(self, tiles, index):
-        """Pinpoint the maxium values for each category.
+        """Pinpoint the maximum values for each category.
 
         Arguments:
             tiles: list of dicts, the tile objects
@@ -1901,7 +1923,7 @@ class Harmonizer(object):
                 # add to surround points
                 surrounded.append(point)
 
-        return surrounded
+            return surrounded
 
 
 # # load harmonizer
