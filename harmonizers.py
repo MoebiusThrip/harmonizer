@@ -936,7 +936,7 @@ class Harmonizer(object):
 
         return condensations
 
-    def discover(self, name='concerto.png', extent=3):
+    def discover(self, name='concerto.png', extent=30):
         """Discover the notes in an image file.
 
         Arguments:
