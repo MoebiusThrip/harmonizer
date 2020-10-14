@@ -100,7 +100,7 @@ class Harmonizer(object):
         self.palette = {}
 
         # staff properties
-        self.positions = (-2, 15)
+        self.positions = (-2, 16)
 
         # discover properties
         self.increment = 12
@@ -119,6 +119,20 @@ class Harmonizer(object):
         self.spacing = None
         self.notes = None
         self.tiles = None
+
+        # general harmonic properties
+        self.clefs = {}
+
+        # current sheet harmonic properties
+        self.key = 'D'
+        self.clef = 'bass'
+
+        # general harmonic properties
+        self.clefs = {}
+        self.wheel = {}
+
+        # define general harmonic properties
+        self._define()
 
         return
 
@@ -273,6 +287,56 @@ class Harmonizer(object):
         prism = numpy.array(prism)
 
         return prism
+
+    def _define(self):
+        """Populate harmonic information.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Populates:
+            self.clefs
+        """
+
+        # make notes
+        notes = 'ABCDEFG'
+
+        # define clefs
+        self.clefs['treble'] = {position: notes[(position + 4) % 7] for position in range(*self.positions)}
+        self.clefs['bass'] = {position: notes[(position + 6) % 7] for position in range(*self.positions)}
+
+        # define pitches and pitch mirror
+        pitches = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+        mirror = {pitch: index for index, pitch in enumerate(pitches)}
+
+        # define spectrum
+        spectrum = ['white', 'black', 'magenta', 'red', 'oragne', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
+
+        # define wheel
+        indexing = lambda pitch, pitchii: (mirror[pitchii] - mirror[pitch]) % len(spectrum)
+        self.wheel = {pitch: {pitchii: spectrum[indexing(pitch, pitchii)] for pitchii in pitches} for pitch in pitches}
+
+        return None
+
+    def _describe(self, element):
+        """Describe an element in terms of its harmonic properties.
+
+        Arguments:
+            element: dict
+
+        Returns:
+            dict
+        """
+
+        # make note
+        note = {'center': element['center']}
+        note['pitch'] = self.clefs[self.clef][element['position']]
+        note['color'] = self.wheel[self.key][note['pitch']]
+
+        return note
 
     def _detect(self, row, number=100, fraction=0.5):
         """Detect a horizontal line by checking a number of points at random.
@@ -865,6 +929,7 @@ class Harmonizer(object):
             self.notes
             self.sheet
             self.painting
+            self.tiles
         """
 
         # get file and convert
@@ -893,10 +958,14 @@ class Harmonizer(object):
         # check along each staff line
         print('finding notes...')
         reports = []
+        notes = []
         for number, measure in enumerate(self.measures[:extent]):
 
             # status
             print('measure {} of {}...'.format(number, len(self.measures)))
+
+            # begin notes of the measure
+            members = []
 
             # for each pixel
             tiles = []
@@ -906,7 +975,7 @@ class Harmonizer(object):
                 if self.width < index < len(silhouette[0]) - self.width and index % self.increment == 0:
 
                     # for each position
-                    for position in range(self.positions[0], self.positions[1] + 1):
+                    for position in range(*self.positions):
 
                         # make tile
                         row = measure[position]
@@ -930,18 +999,25 @@ class Harmonizer(object):
                 elements = self.select(tiles, category)
 
                 # coalesce for certain elements
-                if category in ('quarters', 'halves'):
+                if category in ('quarters'):
 
                     # coelsece elements
                     elements = self.coalesce(elements, silhouette, category, measure)
+
+                    # add member to notes for each element
+                    [members.append(self._describe(element)) for element in elements]
 
                 # add to discoveries
                 print('{}: {}'.format(category, len(elements)))
                 discoveries[category] += elements
 
+            # append to notes
+            notes.append(members)
+
         # set discoveries
         self.reports = reports
         self.tiles = discoveries
+        self.notes = notes
 
         # report
         print(' ')
@@ -1283,7 +1359,7 @@ class Harmonizer(object):
 
             # add lower ledger lines
             ledging = lambda number: stave[9]['row'] - int((number - 9) * spacing / 2)
-            ledges = (number for number in range(10, self.positions[1] + 1))
+            ledges = (number for number in range(10, self.positions[1]))
             stave.update({position: {'position': position, 'row': ledging(position)} for position in ledges})
 
             # add to staff
@@ -1295,16 +1371,19 @@ class Harmonizer(object):
 
         return None
 
-    def paint(self, notes, monocolor=None, criterion=8):
-        """Paint the discovered objects onto the sheet.
+    def paint(self, monocolor=None, criterion=8):
+        """Paint the discovered notes onto the sheet.
 
         Arguments:
-            notes: list of note to paint.
             monocolor=None: specific color to use
+            criterion=8: the shading criterion
 
         Returns:
             None
         """
+
+        # coalesce notes
+        notes = [note for measure in self.notes for note in measure]
 
         # go through each category
         print('painting {} notes...'.format(len(notes)))
@@ -1532,7 +1611,7 @@ class Harmonizer(object):
         # get predictions
         predictions = [float(entry[index]) for entry in self.reports[line]]
         predictions = self._scale(predictions)
-        height = self.positions[1] - self.positions[0] + 1
+        height = self.positions[1] - self.positions[0]
         predictions = self._square(predictions, height)
         image = numpy.array(predictions)
 
@@ -1681,6 +1760,26 @@ class Harmonizer(object):
 
         return smears
 
+    def snuff(self, note, measure):
+        """Snuff out a note.
+
+        Arguments:
+            note: int, note number
+            measure: int, measure number
+
+        Returns:
+            None
+
+        Populates:
+            self.notes
+        """
+
+        # snuff out the note
+        notes = [member for index, member in enumerate(self.notes[measure]) if index != note]
+        self.notes[measure] = notes
+
+        return None
+
     def spot(self, notes, monocolor=None, thickness=3):
         """Paint the discovered objects onto the sheet.
 
@@ -1745,7 +1844,7 @@ class Harmonizer(object):
         self.palette['acid'] = [220, 240, 0, 255]
 
         # assign to positions
-        positions = [position for position in range(self.positions[0], self.positions[1] + 1)]
+        positions = [position for position in range(*self.positions)]
         labels = ['white', 'magenta', 'red', 'green', 'blue', 'cyan', 'yellow', 'white', 'magenta', 'red', 'green', 'blue', 'cyan', 'yellow', 'white', 'magenta', 'red', 'green']
         colors = {position: label for position, label in zip(positions, labels)}
         self.colors = colors
@@ -1873,6 +1972,27 @@ class Harmonizer(object):
             # print status
             print('era {} of {} eras complete.'.format(era + 1, eras))
             print(' ')
+
+        return None
+
+    def tune(self, note, measure, pitch):
+        """Tune a note to the correct pitch.
+
+        Arguments:
+            note: int, the note index
+            measure: int, the measure index
+            pitch: str, the correct pitch
+
+        Returns:
+            None
+
+        Populates:
+            self.notes
+        """
+
+        # correct pitch
+        self.notes[measure][note]['pitch'] = pitch
+        self.notes[measure][note]['color'] = self.wheel[self.key][pitch]
 
         return None
 
