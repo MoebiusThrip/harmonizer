@@ -12,7 +12,7 @@ from datetime import datetime
 from math import sqrt
 
 # import pil and skimage
-from PIL import Image
+from PIL import Image, ImageFont, ImageDraw
 
 # import sklearn
 from sklearn.cluster import AffinityPropagation, MeanShift
@@ -119,6 +119,7 @@ class Harmonizer(object):
         self.spacing = None
         self.notes = None
         self.tiles = None
+        self.chords = []
 
         # general harmonic properties
         self.clefs = {}
@@ -718,6 +719,25 @@ class Harmonizer(object):
 
         return tile
 
+    def annotate(self, measure, chord):
+        """Annotate a measure with a chord.
+
+        Arguments:
+            measure: int
+            chord: str
+
+        Returns:
+            None
+
+        Populates:
+            self.chords
+        """
+
+        # populate chords
+        self.chords[measure] = chord
+
+        return None
+
     def ask(self, number, category):
         """Ask about the top discoveries for a category.
 
@@ -959,6 +979,7 @@ class Harmonizer(object):
         print('finding notes...')
         reports = []
         notes = []
+        chords = []
         for number, measure in enumerate(self.measures[:extent]):
 
             # status
@@ -1011,13 +1032,18 @@ class Harmonizer(object):
                 print('{}: {}'.format(category, len(elements)))
                 discoveries[category] += elements
 
-            # append to notes
+            # sort members by center and append
+            members.sort(key=lambda member: member['center'][0])
             notes.append(members)
+
+            # append blank chord
+            chords.append('')
 
         # set discoveries
         self.reports = reports
         self.tiles = discoveries
         self.notes = notes
+        self.chords = chords
 
         # report
         print(' ')
@@ -1395,6 +1421,30 @@ class Harmonizer(object):
             color = monocolor or note['color']
             painting = self.shade(painting, center, color, criterion)
 
+        # annotate chords
+        for index, chord in enumerate(self.chords):
+
+            # check for blank
+            if chord:
+
+                # get coordinates
+                left = self.measures[index]['left']
+                top = self.measures[index][self.positions[1] - 1] - 50
+
+                # get color
+                pitch = chord[0]
+                color = self.wheel[self.key][pitch]
+                color = tuple(self.palette[color][:3])
+
+                # add to painting
+                xerox = Image.fromarray(painting)
+                font = ImageFont.truetype('/Library/Fonts/Arial.ttf', 30)
+                draw = ImageDraw.Draw(xerox)
+                draw.text((left, top), chord, font=font, fill=color)
+
+                # convert back to numpy array
+                painting = numpy.array(xerox)
+
         # set it
         self.painting = painting
 
@@ -1591,6 +1641,22 @@ class Harmonizer(object):
             print(pair[0][1])
             print(pair[1])
             print(' ')
+
+        return None
+
+    def remember(self, path):
+        """Remember the picture for later.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # transform painting into image and save
+        image = Image.fromarray(self.painting)
+        image.save(path)
 
         return None
 
