@@ -615,6 +615,45 @@ class Harmonizer(object):
 
         return rows
 
+    def _tesselate(self, horizontal, vertical, silhouette, measure):
+        """Create a tile from a center point.
+
+        Arguments:
+            horizontal: int
+            vertical: int
+            silhouette: numpy array
+            measure: int
+
+        Returns:
+            dict
+        """
+
+        # begin tile
+        tile = {}
+
+        # nudge vertical to closest staff line
+        staves = [value for stave in self.staff for value in stave.values()]
+        squares = [(vertical - verticalii) ** 2 for verticalii in staves]
+        zipper = [pair for pair in zip(staves, squares)]
+        zipper.sort(key=lambda pair: pair[1])
+        vertical = zipper[0][0]
+
+        # calculate center
+        center = (horizontal, vertical)
+
+        # determine position
+        positions = {height: position for stave in self.staff for position, height in stave.items()}
+        position = positions[vertical]
+
+        # add attributes
+        tile['position'] = position
+        tile['measure'] = measure
+        tile['center'] = center
+        tile['shadow'] = self._punch(silhouette, center)
+        tile['color'] = self.colors[position]
+
+        return tile
+
     def ask(self, number, category):
         """Ask about the top discoveries for a category.
 
@@ -738,7 +777,7 @@ class Harmonizer(object):
 
         return None
 
-    def coalesce(self, tiles, silhouette, category, width=25, height=25):
+    def coalesce(self, tiles, silhouette, category, measure, width=25, height=25):
         """Coalesce several overlapping detections into single centered detections.
 
         Arguments:
@@ -780,44 +819,40 @@ class Harmonizer(object):
         punches = [self._punch(silhouette, center, width, height) for center in centers]
         masks = [self._mask(punch) for punch in punches]
 
-        # predict from masks
-        predictions = self.predict(masks)
-
-        # get category index
-        index = self.mirror[category]
-
-        # get all predicted centers
-        points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
-
-        # make matrix and cluster
-        matrix = numpy.array(points)
-        propagation = MeanShift(bandwidth=10, bin_seeding=True).fit(matrix)
-        labels = list(set(propagation.labels_))
-
-        # get average horizontal and vertical of each label
+        # set default condensations to empty
         condensations = []
-        for label in labels:
+        if len(masks) > 0:
 
-            # get subset of points with that label
-            subset = [row for row, cluster in zip(rows, labels) if cluster == label]
+            # predict from masks
+            predictions = self.predict(masks)
 
-            # get averages
-            horizontal = int(numpy.average([row[0] for row in subset]))
-            vertical = int(numpy.average([row[1] for row in subset]))
+            # get category index
+            index = self.mirror[category]
 
-            # nudge vertical to closest staff line
-            staves = [value for stave in self.staff for value in stave.values()]
-            squares = [(vertical - verticalii) ** 2 for verticalii in staves]
-            zipper = [pair for pair in zip(staves, squares)]
-            zipper.sort(key=lambda pair: pair[1])
-            vertical = zipper[0][0]
+            # get all predicted centers
+            points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
 
-            # add average to reductions
-            condensations.append((horizontal, vertical))
+            # check for points
+            if len(points) > 0:
+
+                # make matrix and cluster
+                matrix = numpy.array(points)
+                propagation = MeanShift(bandwidth=10, bin_seeding=True).fit(matrix)
+
+                # get the cluster centers
+                condensations = []
+                clusters = propagation.cluster_centers_
+                for cluster in clusters:
+
+                    # make condensation
+                    horizontal = int(float(cluster[0]))
+                    vertical = int(float(cluster[1]))
+                    condensation = self._tesselate(horizontal, vertical, silhouette, measure)
+                    condensations.append(condensation)
 
         return condensations
 
-    def discover(self, name='concerto.png'):
+    def discover(self, name='concerto.png', extent=3):
         """Discover the notes in an image file.
 
         Arguments:
@@ -858,7 +893,7 @@ class Harmonizer(object):
         # check along each staff line
         print('finding notes...')
         reports = []
-        for number, measure in enumerate(self.measures):
+        for number, measure in enumerate(self.measures[:extent]):
 
             # status
             print('measure {} of {}...'.format(number, len(self.measures)))
@@ -874,15 +909,8 @@ class Harmonizer(object):
                     for position in range(self.positions[0], self.positions[1] + 1):
 
                         # make tile
-                        tile = {}
                         row = measure[position]
-                        center = (index, row)
-                        shadow = self._punch(silhouette, center)
-                        tile['position'] = position
-                        tile['center'] = center
-                        tile['shadow'] = shadow
-                        tile['measure'] = number
-                        tile['color'] = self.colors[position]
+                        tile = self._tesselate(index, row, silhouette, measure)
                         tiles.append(tile)
 
             # make predictions
@@ -896,13 +924,19 @@ class Harmonizer(object):
                 tile['prediction'] = [float(entry) for entry in prediction]
 
             # find elements
-            for index, category in enumerate(self.categories):
+            for category in self.categories:
 
                 # find elements
-                elements = self.select(tiles, index)
+                elements = self.select(tiles, category)
 
-                #self.coalesce(elements, silhouette, category)
+                # coalesce for certain elements
+                if category in ('quarters', 'halves'):
 
+                    # coelsece elements
+                    elements = self.coalesce(elements, silhouette, category, measure)
+
+                # add to discoveries
+                print('{}: {}'.format(category, len(elements)))
                 discoveries[category] += elements
 
         # set discoveries
@@ -1261,7 +1295,7 @@ class Harmonizer(object):
 
         return None
 
-    def paint(self, notes, monocolor=None):
+    def paint(self, notes, monocolor=None, criterion=8):
         """Paint the discovered objects onto the sheet.
 
         Arguments:
@@ -1280,7 +1314,7 @@ class Harmonizer(object):
             # shade it
             center = note['center']
             color = monocolor or note['color']
-            painting = self.shade(painting, center, color, 8)
+            painting = self.shade(painting, center, color, criterion)
 
         # set it
         self.painting = painting
@@ -1556,26 +1590,26 @@ class Harmonizer(object):
             image = self.holograph(image)
 
         # view the image
-        Image.fromarray(image).show()
+        Image.fromarray(image).save('display.png')
 
         return None
 
-    def select(self, tiles, index):
+    def select(self, tiles, category):
         """Pinpoint the maximum values for each category.
 
         Arguments:
             tiles: list of dicts, the tile objects
-            index: int, index of relevant category
+            category: str, the category
 
         Returns:
             list of dicts, the elements
         """
 
         # get those tiles with highest score
+        index = self.mirror[category]
         elements = [tile for tile in tiles if max(tile['prediction']) == tile['prediction'][index]]
 
         # add attributes
-        category = self.categories[index]
         [element.update({'category': category, 'score': element['prediction'][index]}) for element in elements]
 
         return elements
@@ -1605,13 +1639,7 @@ class Harmonizer(object):
         # get the tiling subset (still pointing to image)
         tile = [row[left:right] for row in image[up:down]]
 
-        # check image at random
-        if random() < 0.00:
-
-            # view image
-            self.see(numpy.array(tile))
-
-        # make a shadow
+        # make a shadow and determine shade points
         shadow = self.backlight(tile)
         reckoning = self.weigh(shadow, criterion)
 
@@ -1894,7 +1922,7 @@ class Harmonizer(object):
             for horizontal, pixel in enumerate(row):
 
                 # check for dark pixel
-                if pixel < self.gray:
+                if pixel < -0.2:
 
                     # add to darks
                     point = (vertical, horizontal)
@@ -1923,7 +1951,7 @@ class Harmonizer(object):
                 # add to surround points
                 surrounded.append(point)
 
-            return surrounded
+        return surrounded
 
 
 # # load harmonizer
