@@ -314,7 +314,7 @@ class Harmonizer(object):
         mirror = {pitch: index for index, pitch in enumerate(pitches)}
 
         # define spectrum
-        spectrum = ['white', 'black', 'magenta', 'red', 'oragne', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
+        spectrum = ['white', 'black', 'magenta', 'red', 'orange', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
 
         # define wheel
         indexing = lambda pitch, pitchii: (mirror[pitchii] - mirror[pitch]) % len(spectrum)
@@ -719,12 +719,12 @@ class Harmonizer(object):
 
         return tile
 
-    def annotate(self, measure, chord):
-        """Annotate a measure with a chord.
+    def annotate(self, measure, *chords):
+        """Annotate measures with chords.
 
         Arguments:
-            measure: int
-            chord: str
+            measure: int, beginning measure
+            *chord: unpacked tuple of strings
 
         Returns:
             None
@@ -734,7 +734,14 @@ class Harmonizer(object):
         """
 
         # populate chords
-        self.chords[measure] = chord
+        index = measure
+        for chord in chords:
+
+            # annotate
+            self.chords[index] = chord
+
+            # advance index
+            index += 1
 
         return None
 
@@ -935,6 +942,45 @@ class Harmonizer(object):
                     condensations.append(condensation)
 
         return condensations
+
+    def correct(self, measure, *corrections):
+        """Correct the notes in a measure.
+
+        Arguments:
+            measure: int, index of measure
+            *corrections: unpacked tuple of int and str
+
+        Returns:
+            None
+
+        Populates:
+            self.notes
+        """
+
+        # arrange corrections into pairs
+        indices = [entry for index, entry in enumerate(corrections) if index % 2 == 0]
+        pitches = [entry for index, entry in enumerate(corrections) if index % 2 == 1]
+        pairs = [pair for pair in zip(indices, pitches)]
+
+        # sort pairs by biggest index first
+        pairs.sort(key=lambda pair: pair[0], reverse=True)
+
+        # apply each pair
+        for index, pitch in pairs:
+
+            # check for pitch
+            if pitch:
+
+                # tune
+                self.tune(index, measure, pitch)
+
+            # otherwise
+            else:
+
+                # snuff out the note
+                self.snuff(index, measure)
+
+        return None
 
     def discover(self, name='concerto.png', extent=30):
         """Discover the notes in an image file.
