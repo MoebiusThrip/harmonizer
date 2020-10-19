@@ -1934,9 +1934,9 @@ class Harmonizer(object):
         """
 
         # set primaries of palette in rgb coordinates
-        self.palette['red'] = [150, 0, 0, 255]
+        self.palette['red'] = [200, 0, 0, 255]
         self.palette['green'] = [0, 200, 0, 255]
-        self.palette['blue'] = [50, 120, 255, 255]
+        self.palette['blue'] = [70, 140, 255, 255]
 
         # set secondaries
         self.palette['yellow'] = [255, 255, 0, 255]
@@ -1945,15 +1945,15 @@ class Harmonizer(object):
 
         # set black and white
         self.palette['white'] = [220, 220, 220, 255]
-        self.palette['black'] = [40, 40, 40, 255]
+        self.palette['black'] = [80, 80, 80, 255]
 
         # set the rest of roygbiv
         self.palette['orange'] = [255, 180, 0, 255]
-        self.palette['indigo'] = [50, 0, 230, 255]
-        self.palette['violet'] = [170, 0, 170, 255]
+        self.palette['indigo'] = [0, 20, 200, 255]
+        self.palette['violet'] = [160, 0, 160, 255]
 
         # set the twelvth
-        self.palette['acid'] = [220, 240, 0, 255]
+        self.palette['acid'] = [200, 250, 0, 255]
 
         # assign to positions
         positions = [position for position in range(*self.positions)]
