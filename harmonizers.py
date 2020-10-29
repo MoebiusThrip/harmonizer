@@ -1633,13 +1633,21 @@ class Harmonizer(object):
         # annotate chords
         for index, chord in enumerate(self.chords):
 
-            # check for blank
-            if chord:
+            # get coordinates
+            left = self.measures[index]['left']
+            top = self.measures[index][self.positions[1] - 1] - 50
+            bottom = self.measures[index][0]
 
-                # get coordinates
-                left = self.measures[index]['left']
-                top = self.measures[index][self.positions[1] - 1] - 50
-                bottom = self.measures[index][0]
+            # convert to image and begin draw mode
+            xerox = Image.fromarray(painting)
+            draw = ImageDraw.Draw(xerox)
+
+            # add measure number to painting
+            font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
+            draw.text((left, bottom), str(index), font=font, fill='black')
+
+            # if there is a chord name
+            if chord:
 
                 # determine chord root
                 pitches = [key for key in self.wheel.keys() if chord.startswith(key)]
@@ -1651,14 +1659,8 @@ class Harmonizer(object):
                 color = self.spectrum[interval]
 
                 # add chord to painting
-                xerox = Image.fromarray(painting)
-                draw = ImageDraw.Draw(xerox)
                 font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
                 draw.text((left, top), chord, font=font, fill='black')
-
-                # add measure number to painting
-                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 12)
-                draw.text((left, bottom), chord, font=font, fill='black')
 
                 # convert back to numpy array
                 painting = numpy.array(xerox)
@@ -1669,6 +1671,12 @@ class Harmonizer(object):
                 right = self.measures[index]['right']
                 box = (up, down, left, right)
                 painting = self.shade(painting, box, color, criterion)
+
+            # otherwise
+            else:
+
+                # convert back to numpy array
+                painting = numpy.array(xerox)
 
         # set it
         self.painting = painting
@@ -2235,20 +2243,21 @@ class Harmonizer(object):
 
                 # start score and compare intervals
                 score = 0
+                penalty = 0.5
                 for interval in structure:
 
                     # check for match
                     if interval in intervals:
 
                         # add to score by the inverse of the interval
-                        score += 1 / float(int(self._fix(interval)) + int('b' in interval))
+                        score += 1 / float(int(self._fix(interval)) + penalty * int('b' in interval))
 
                     # check against implications
                     if interval in implications:
 
                         # add some portion to the score
                         weight = 100
-                        score += 1 / (weight * float(int(self._fix(interval)) + int('b' in interval)))
+                        score += 1 / (weight * float(int(self._fix(interval)) + penalty * int('b' in interval)))
 
                 # add score
                 scores.append((root + chord, score, structure))
@@ -2359,7 +2368,7 @@ class Harmonizer(object):
         # correct pitch
         pitch = self.enharmonize(pitch)
         self.notes[measure][note]['pitch'] = pitch
-        self.notes[measure][note]['color'] = self.wheel[self.key][pitch]
+        self.notes[measure][note]['color'] = self.spectrum[self.wheel[self.key][pitch]]
 
         return None
 
