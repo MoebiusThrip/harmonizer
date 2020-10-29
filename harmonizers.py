@@ -1932,6 +1932,16 @@ class Harmonizer(object):
 
         return None
 
+    def publish(self, chunk=4):
+        """Publish a painting into a pdf file.
+
+        Arguments:
+            chunk=4: number of staff lines per page
+
+        Returns:
+            None
+        """
+
     def remember(self, path):
         """Remember the picture for later.
 
@@ -2505,14 +2515,13 @@ class Harmonizer(object):
         return surrounded
 
 
+# status
+print('imported harmonizers.')
+
 # # load harmonizer
 harmo = Harmonizer('pieces/concerto')
 harmo.prepare()
 harmo.load()
-
-# status
-print('imported harmonizers.')
-
 
 # script
 harmo.discover(3)
