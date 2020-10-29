@@ -121,7 +121,7 @@ class Harmonizer(object):
         self.tiles = None
         self.chords = []
 
-        # visual properties
+        # annotation properties
         self.font = 'Arial Black'
         self.size = 30
 
@@ -1269,7 +1269,10 @@ class Harmonizer(object):
 
             # get scores
             scores = self.theorize(*pitches)
-            self.annotate(index, scores[0][0])
+            if len(scores) > 0:
+
+                # annotate
+                self.annotate(index, scores[0][0])
 
         return None
 
@@ -1441,6 +1444,9 @@ class Harmonizer(object):
             # detect all possible columns
             candidates = [(index, column) for index, column in enumerate(columns) if self._detect(column, 40, 0.9)]
 
+            # detect all possible blanks
+            blanks = [(index, column) for index, column in enumerate(columns) if self._detect(column, )]
+
             # check all points for each
             pipes = [pair[0] for pair in candidates if all([entry < -0.3 for entry in pair[1]])]
 
@@ -1455,7 +1461,7 @@ class Harmonizer(object):
             verified = []
             for pipe in pipes:
 
-                # check for whiles
+                # check for whites
                 lefts = [silhouette[index][pipe - 3] for index in indices]
                 rights = [silhouette[index][pipe + 3] for index in indices]
                 if all([float(entry) > 0.4 for entry in lefts + rights]):
@@ -2193,7 +2199,6 @@ class Harmonizer(object):
         [print(score) for score in scores[:7]]
 
         return scores
-
 
     def train(self, eras=None, epochs=None, grade=100):
         """Train the model.
