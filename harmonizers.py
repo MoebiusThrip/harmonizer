@@ -1945,14 +1945,18 @@ class Harmonizer(object):
         # break staves into overlapping chunks
         sections = []
         staves = [index for index, _ in enumerate(self.staff)]
+        block = chunk - 1
         while (len(staves) > 0):
 
             # make page
-            section = staves[:chunk]
+            section = staves[:block]
             sections.append(section)
 
             # reset indices
-            staves = staves[chunk - 1:]
+            staves = staves[block - 1:]
+
+            # reset block to full chunk after title
+            block = chunk
 
         print(sections)
 
@@ -1978,7 +1982,19 @@ class Harmonizer(object):
                 # calculate bottom
                 bottom = int((self.staff[last][self.positions[0]] + self.staff[last + 1][self.positions[1] - 1]) / 2)
 
-            print(top, bottom)
+            # otherwise add margin to last page
+            else:
+
+                # get average length of all pages
+                length = int(numpy(average([len(page) for page in pages])))
+                if bottom - top < length:
+
+                    # add margin to page
+                    margin = [[[255] * 4] * len(self.painting[0])] * (bottom - top)
+                    self.painting = numpy.concatenate((self.painting, margin), axis=0)
+
+                # get bottom
+                bottom = len(self.painting)
 
             # get page
             page = Image.fromarray(self.painting[top:bottom]).convert('RGB')
@@ -2572,7 +2588,7 @@ harmo.prepare()
 harmo.load()
 
 # script
-harmo.discover(1)
+harmo.discover()
 harmo.harmonize()
 harmo.paint()
 harmo.see()
