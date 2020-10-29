@@ -121,6 +121,10 @@ class Harmonizer(object):
         self.tiles = None
         self.chords = []
 
+        # visual properties
+        self.font = 'Arial Black'
+        self.size = 30
+
         # current sheet harmonic properties
         self.key = 'D'
         self.clef = 'bass'
@@ -1056,7 +1060,7 @@ class Harmonizer(object):
 
         return None
 
-    def discover(self, name='concerto.png', extent=3):
+    def discover(self, name='concerto.png', extent=100):
         """Discover the notes in an image file.
 
         Arguments:
@@ -1257,7 +1261,7 @@ class Harmonizer(object):
         for index, measure in enumerate(self.notes):
 
             # print
-            print('measure {} or {}'.format(index, len(self.notes)))
+            print('measure {} of {}'.format(index, len(self.notes)))
 
             # get all pitches in the measure
             pitches = [note['pitch'] for note in measure]
@@ -1566,9 +1570,9 @@ class Harmonizer(object):
         for note in notes:
 
             # shade it
-            center = note['center']
+            box = self._bound(note['center'])
             color = monocolor or note['color']
-            painting = self.shade(painting, center, color, criterion)
+            painting = self.shade(painting, box, color, criterion)
 
         # annotate chords
         for index, chord in enumerate(self.chords):
@@ -1582,17 +1586,24 @@ class Harmonizer(object):
 
                 # get color
                 pitch = chord[0]
-                color = self.wheel[self.key][pitch]
-                color = tuple(self.palette[color][:3])
+                interval = self.wheel[self.key][pitch]
+                color = self.spectrum[interval]
 
                 # add to painting
                 xerox = Image.fromarray(painting)
-                font = ImageFont.truetype('/Library/Fonts/Arial.ttf', 30)
+                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
                 draw = ImageDraw.Draw(xerox)
-                draw.text((left, top), chord, font=font, fill=color)
+                draw.text((left, top), chord, font=font, fill='black')
 
                 # convert back to numpy array
                 painting = numpy.array(xerox)
+
+                # shade chord box
+                up = top
+                down = top + self.size
+                right = self.measures[index]['right']
+                box = (up, down, left, right)
+                painting = self.shade(painting, box, color, criterion)
 
         # set it
         self.painting = painting
@@ -1908,13 +1919,14 @@ class Harmonizer(object):
 
         return elements
 
-    def shade(self, image, center, color, criterion=8):
+    def shade(self, image, box, color, criterion=8):
         """Shade all the dark region in an image with the color of choice.
 
         Arguments:
             image: numpy array, the image
-            center: (int * 2), the center coordinates
+            box: (int * 4), the bounding box
             color: str, key to the palette dict
+            box=None: tuple of ints, the bounding box
             criterion=8: int, number of dark neighboring pixels at which to shade
 
         Returns:
@@ -1924,8 +1936,8 @@ class Harmonizer(object):
         # get color from the palette
         color = self.palette[color]
 
-        # unpack boundary
-        up, down, left, right = self._bound(center)
+        # unpack box
+        up, down, left, right = box
 
         # make copy so as not to disturb the training data
         image = numpy.copy(image)
@@ -2146,7 +2158,7 @@ class Harmonizer(object):
             fixations = [int(self._fix(interval)) for interval in intervals]
 
             # get all implied intervals lower than the highest pitch but at least until the fifth
-            maximum = max([7, max(fixations)])
+            maximum = max([7, max(fixations or [7])])
             implications = [self.wheel[root][pitch] for pitch in signature]
             implications = [interval for interval in implications if int(self._fix(interval)) < maximum]
 
@@ -2363,6 +2375,11 @@ harmo.load()
 print('imported harmonizers.')
 
 
+# script
+harmo.discover()
+harmo.harmonize()
+harmo.paint()
+harmo.see()
 
 
 
