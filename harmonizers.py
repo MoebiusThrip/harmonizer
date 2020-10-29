@@ -47,7 +47,7 @@ class Harmonizer(object):
         object
     """
 
-    def __init__(self, directory='concerto', key='D', signature='F', mode='flats', clef='bass'):
+    def __init__(self, directory='pieces/concerto', key='D', signature='F', mode='flats', clef='bass'):
         """Initialize an Harmonizer instance.
 
         Arguments:
@@ -438,6 +438,57 @@ class Harmonizer(object):
         fixation = element.replace('b', '').replace('#', '')
 
         return fixation
+
+    def _glue(self):
+        """Glue together all subscores.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Populates:
+            self.sheet
+        """
+
+        # get all png files from directory
+        paths = os.listdir(self.directory)
+        paths = [path for path in paths if 'png' in path]
+        paths.sort()
+
+        # collect images
+        images = [Image.open('{}/{}'.format(self.directory, path)) for path in paths]
+        images = [numpy.array(image) for image in images]
+
+        # get longest row
+        width = max([len(image[0]) for image in images])
+        halves = [1 + int(width - len(image[0]) / 2) for image in images]
+
+        # pad the images
+        for image, half in zip(images, halves):
+
+            # go through each row
+            for index, row in enumerate(image):
+
+                # add padding
+                padding = [[255] * 4] * half + row + [[255] * 4] * half
+                padding = numpy.array(padding[:width])
+
+                # correct array
+                image[index] = padding
+
+        # concatenate
+        sheet = images[0]
+        for image in images[1:]:
+
+            # concatenate
+            sheet = numpy.concatenate(sheet, image)
+
+        # set sheet
+        self.sheet = sheet
+
+        return None
 
     def _ingest(self):
         """Ingest the source material, training data conversations.
@@ -2459,11 +2510,11 @@ harmo.load()
 print('imported harmonizers.')
 
 
-# script
-harmo.discover()
-harmo.harmonize()
-harmo.paint()
-harmo.see()
+# # script
+# harmo.discover()
+# harmo.harmonize()
+# harmo.paint()
+# harmo.see()
 
 
 
