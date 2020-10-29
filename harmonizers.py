@@ -1095,7 +1095,7 @@ class Harmonizer(object):
 
         return None
 
-    def discover(self, name='concerto.png', extent=100):
+    def discover(self, name='concerto.png', extent=3):
         """Discover the notes in an image file.
 
         Arguments:
@@ -1317,12 +1317,9 @@ class Harmonizer(object):
             pitches = [note['pitch'] for note in measure]
             pitches = list(set(pitches))
 
-            # get scores
-            scores = self.theorize(*pitches)
-            if len(scores) > 0:
-
-                # annotate
-                self.annotate(index, scores[0][0])
+            # get chord and annotate
+            chord = self.theorize(*pitches)
+            self.annotate(index, chord)
 
         return None
 
@@ -1642,17 +1639,26 @@ class Harmonizer(object):
                 # get coordinates
                 left = self.measures[index]['left']
                 top = self.measures[index][self.positions[1] - 1] - 50
+                bottom = self.measures[index][0]
+
+                # determine chord root
+                pitches = [key for key in self.wheel.keys() if chord.startswith(key)]
+                pitches.sort(key=lambda pitch: len(pitch), reverse=True)
+                pitch = pitches[0]
 
                 # get color
-                pitch = chord[0]
                 interval = self.wheel[self.key][pitch]
                 color = self.spectrum[interval]
 
-                # add to painting
+                # add chord to painting
                 xerox = Image.fromarray(painting)
-                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
                 draw = ImageDraw.Draw(xerox)
+                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
                 draw.text((left, top), chord, font=font, fill='black')
+
+                # add measure number to painting
+                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 12)
+                draw.text((left, bottom), chord, font=font, fill='black')
 
                 # convert back to numpy array
                 painting = numpy.array(xerox)
@@ -2254,7 +2260,14 @@ class Harmonizer(object):
         # print
         [print(score) for score in scores[:7]]
 
-        return scores
+        # return chord
+        chord = ''
+        if len(scores) > 0:
+
+            # get top choice
+            chord = scores[0][0]
+
+        return chord
 
     def train(self, eras=None, epochs=None, grade=100):
         """Train the model.
