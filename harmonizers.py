@@ -47,7 +47,7 @@ class Harmonizer(object):
         object
     """
 
-    def __init__(self):
+    def __init__(self, directory='concerto', key='D', signature='F', mode='flats', clef='bass'):
         """Initialize an Harmonizer instance.
 
         Arguments:
@@ -108,7 +108,14 @@ class Harmonizer(object):
         self.criteria = 0.98
         self.reports = []
 
+        # current sheet harmonic properties
+        self.key = key
+        self.clef = clef
+        self.signature = signature
+        self.mode = mode
+
         # current sheet properties
+        self.directory = directory
         self.sheet = None
         self.silhouette = None
         self.original = None
@@ -121,21 +128,17 @@ class Harmonizer(object):
         self.tiles = None
         self.chords = []
 
-        # annotation properties
-        self.font = 'Arial Black'
-        self.size = 30
-
-        # current sheet harmonic properties
-        self.key = 'D'
-        self.clef = 'bass'
-        self.signature = 'F'
-
         # general harmonic properties
         self.clefs = {}
         self.wheel = {}
         self.spectrum = {}
         self.signatures = {}
         self.lexicon = {}
+        self.enharmonics = {}
+
+        # annotation properties
+        self.font = 'Arial Black'
+        self.size = 30
 
         # define general harmonic properties
         self._define()
@@ -318,9 +321,19 @@ class Harmonizer(object):
         self.clefs['treble'] = {position: notes[(position + 4) % 7] for position in range(*self.positions)}
         self.clefs['bass'] = {position: notes[(position + 6) % 7] for position in range(*self.positions)}
 
-        # define pitches and pitch mirror
-        pitches = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
-        mirror = {pitch: index for index, pitch in enumerate(pitches)}
+        # for flats
+        if self.mode == 'flats':
+            
+            # define pitches and mirror
+            pitches = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+            mirror = {pitch: index for index, pitch in enumerate(pitches)}
+
+        # or sharps
+        if self.mode == 'sharps':
+            
+            # define pitches and mirror
+            pitches = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+            mirror = {pitch: index for index, pitch in enumerate(pitches)}
 
         # define intervals and spectrum
         intervals = ['1', 'b9', '9', 'b3', '3', '11', 'b5', '5', 'b13', '13', 'b7', '7']
@@ -335,6 +348,21 @@ class Harmonizer(object):
         # define signatures
         self.signatures['C'] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
         self.signatures['F'] = ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']
+
+        # define flat enharmonics
+        flats = {note: note for note in notes}
+        flats.update({note: note for note in ('Db', 'Eb', 'Gb', 'Ab', 'Bb')})
+        flats.update({pair.split()[0]: pair.split()[1] for pair in ['C# Db', 'D# Eb', 'F# Gb', 'G# Ab', 'A# Bb']})
+        flats.update({pair.split()[0]: pair.split()[1] for pair in ['E# F', 'B# C']})
+
+        # define sharp enharmonics
+        sharps = {note: note for note in notes}
+        sharps.update({note: note for note in ('C#', 'D#', 'F#', 'G#', 'A#')})
+        sharps.update({pair.split()[0]: pair.split()[1] for pair in ['Db C#', 'Eb D#', 'Gb F#', 'Ab G#', 'Bb A#']})
+        sharps.update({pair.split()[0]: pair.split()[1] for pair in ['Fb E', 'Cb B']})
+
+        # set enharmonics
+        self.enharmonics = {'flats': flats, 'sharps': sharps}
 
         return None
 
@@ -1184,6 +1212,21 @@ class Harmonizer(object):
                 print('{} {}'.format(len(discoveries[category]), category))
 
         return None
+
+    def enharmonize(self, pitch):
+        """Get the enharmonic match for a pitch.
+
+        Arguments:
+            pitch: str
+
+        Returns:
+            str
+        """
+
+        # get enharmonic note
+        enharmonic = self.enharmonics[self.mode][pitch]
+
+        return enharmonic
 
     def evaluate(self):
         """Evaluate the model against the holdout set.
@@ -2156,6 +2199,9 @@ class Harmonizer(object):
             list of tuples
         """
 
+        # get enharmonic pitches
+        pitches = [self.enharmonize(pitch) for pitch in pitches]
+
         # find signature pitches not represented
         signature = self.signatures[self.signature]
         notes = [self._fix(pitch) for pitch in pitches]
@@ -2298,6 +2344,7 @@ class Harmonizer(object):
         """
 
         # correct pitch
+        pitch = self.enharmonize(pitch)
         self.notes[measure][note]['pitch'] = pitch
         self.notes[measure][note]['color'] = self.wheel[self.key][pitch]
 
