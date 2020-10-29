@@ -1942,6 +1942,54 @@ class Harmonizer(object):
             None
         """
 
+        # break staves into overlapping chunks
+        sections = []
+        staves = [index for index, _ in enumerate(self.staff)]
+        while (len(staves) > 0):
+
+            # make page
+            section = staves[:chunk]
+            sections.append(section)
+
+            # reset indices
+            staves = staves[chunk - 1:]
+
+        print(sections)
+
+        # create pages by cutting in between boundaries
+        pages = []
+        for section in sections:
+
+            # get first and last indices
+            first = section[0]
+            last = section[-1]
+
+            # get top index
+            top = 0
+            if first > 0:
+
+                # calculate top between
+                top = int((self.staff[first][self.positions[1] - 1] + self.staff[first - 1][self.positions[0]]) / 2)
+
+            # get bottom index
+            bottom = len(self.painting)
+            if last < len(self.staff) - 1:
+
+                # calculate bottom
+                bottom = int((self.staff[last][self.positions[0]] + self.staff[last + 1][self.positions[1] - 1]) / 2)
+
+            print(top, bottom)
+
+            # get page
+            page = Image.fromarray(self.painting[top:bottom]).convert('RGB')
+            pages.append(page)
+
+        # save as pdf
+        deposit = self.directory + '.pdf'
+        pages[0].save(deposit, save_all=True, append_images=pages[1:])
+
+        return None
+
     def remember(self, path):
         """Remember the picture for later.
 
@@ -2524,10 +2572,11 @@ harmo.prepare()
 harmo.load()
 
 # script
-harmo.discover(3)
+harmo.discover(1)
 harmo.harmonize()
 harmo.paint()
 harmo.see()
+harmo.publish()
 
 
 
