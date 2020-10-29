@@ -356,17 +356,24 @@ class Harmonizer(object):
 
         return note
 
-    def _detect(self, row, number=100, fraction=0.5):
+    def _detect(self, row, number=100, fraction=0.5, criterion=None):
         """Detect a horizontal line by checking a number of points at random.
 
         Arguments:
             row: list of int, a shadow row
             number=100: how many rows to check
             fraction=0.5: how much of the page to check.
+            criterion=None: function object
 
         Returns:
             boolean, black line?
         """
+
+        # set default criterion
+        if not criterion:
+
+            # set criterion:
+            criterion = lambda x: x > -0.3
 
         # get row indices
         indices = [index for index, _ in enumerate(row)]
@@ -381,7 +388,7 @@ class Harmonizer(object):
 
             # get index
             index = choice(indices)
-            if row[index] > -0.3:
+            if criterion(row[index]):
 
                 # break, not a black line
                 black = False
@@ -1444,9 +1451,6 @@ class Harmonizer(object):
             # detect all possible columns
             candidates = [(index, column) for index, column in enumerate(columns) if self._detect(column, 40, 0.9)]
 
-            # detect all possible blanks
-            blanks = [(index, column) for index, column in enumerate(columns) if self._detect(column, )]
-
             # check all points for each
             pipes = [pair[0] for pair in candidates if all([entry < -0.3 for entry in pair[1]])]
 
@@ -1469,8 +1473,14 @@ class Harmonizer(object):
                     # add to verified
                     verified.append(pipe)
 
+            # detect all possible blanks
+            criterion = lambda x: x < 0.4
+            blanks = [index for index, column in enumerate(columns) if self._detect(column, 100, 0.95, criterion=criterion)]
+            blanks = [index for index in blanks if index < verified[0]]
+            blanks.sort()
+            start = blanks[-1]
+
             # add a measure for each pipe
-            start = left
             for pipe in verified:
 
                 # make measure
