@@ -121,19 +121,21 @@ class Harmonizer(object):
         self.tiles = None
         self.chords = []
 
-        # general harmonic properties
-        self.clefs = {}
-
         # current sheet harmonic properties
         self.key = 'D'
         self.clef = 'bass'
+        self.signature = 'F'
 
         # general harmonic properties
         self.clefs = {}
         self.wheel = {}
+        self.spectrum = {}
+        self.signatures = {}
+        self.lexicon = {}
 
         # define general harmonic properties
         self._define()
+        self._tabulate()
 
         return
 
@@ -300,6 +302,9 @@ class Harmonizer(object):
 
         Populates:
             self.clefs
+            self.spectrum
+            self.wheel
+            self.signatures
         """
 
         # make notes
@@ -313,12 +318,19 @@ class Harmonizer(object):
         pitches = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
         mirror = {pitch: index for index, pitch in enumerate(pitches)}
 
-        # define spectrum
-        spectrum = ['white', 'black', 'magenta', 'red', 'orange', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
+        # define intervals and spectrum
+        intervals = ['1', 'b9', '9', 'b3', '3', '11', 'b5', '5', 'b13', '13', 'b7', '7']
+        rainbow = ['white', 'black', 'magenta', 'red', 'orange', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
+        spectrum = {interval: color for interval, color in zip(intervals, rainbow)}
+        self.spectrum = spectrum
 
         # define wheel
         indexing = lambda pitch, pitchii: (mirror[pitchii] - mirror[pitch]) % len(spectrum)
-        self.wheel = {pitch: {pitchii: spectrum[indexing(pitch, pitchii)] for pitchii in pitches} for pitch in pitches}
+        self.wheel = {pitch: {pitchii: intervals[indexing(pitch, pitchii)] for pitchii in pitches} for pitch in pitches}
+
+        # define signatures
+        self.signatures['C'] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+        self.signatures['F'] = ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']
 
         return None
 
@@ -335,7 +347,8 @@ class Harmonizer(object):
         # make note
         note = {'center': element['center']}
         note['pitch'] = self.clefs[self.clef][element['position']]
-        note['color'] = self.wheel[self.key][note['pitch']]
+        note['interval'] = self.wheel[self.key][note['pitch']]
+        note['color'] = self.spectrum[note['interval']]
 
         return note
 
@@ -371,6 +384,21 @@ class Harmonizer(object):
                 break
 
         return black
+
+    def _fix(self, element):
+        """Fix the accidentals on a pitch or interval.
+
+        Arguments:
+            element: str
+
+        Returns:
+            str
+        """
+
+        # remove sharps and flats
+        fixation = element.replace('b', '').replace('#', '')
+
+        return fixation
 
     def _ingest(self):
         """Ingest the source material, training data conversations.
@@ -680,6 +708,45 @@ class Harmonizer(object):
 
         return rows
 
+    def _tabulate(self):
+        """Define chords.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Populates:
+            self.lexicon
+        """
+
+        # define major chords
+        self.lexicon[''] = ['3', '5']
+        self.lexicon['maj7'] = ['3', '5', '7']
+        self.lexicon['maj9'] = ['3', '5', '7', '9']
+        self.lexicon['maj11'] = ['3', '5', '7', '9', '11']
+        self.lexicon['maj13'] = ['3', '5', '7', '9', '11', '13']
+
+        # define minor chords
+        self.lexicon['m'] = ['b3', '5']
+        self.lexicon['m7'] = ['b3', '5', 'b7']
+        self.lexicon['m9'] = ['b3', '5', 'b7', '9']
+        self.lexicon['m11'] = ['b3', '5', 'b7', '9', '11']
+        self.lexicon['m13'] = ['b3', '5', 'b7', '9', '11', '13']
+
+        # define dominant chords
+        self.lexicon['7'] = ['3', '5', 'b7']
+        self.lexicon['9'] = ['3', '5', 'b7', '9']
+        self.lexicon['11'] = ['3', '5', 'b7', '9', '11']
+        self.lexicon['13'] = ['3', '5', 'b7', '9', '11', '13']
+
+        # define other chords
+        self.lexicon['dim'] = ['b3', 'b5']
+        self.lexicon['m7b5'] = ['b3', 'b5', 'b7']
+
+        return None
+
     def _tesselate(self, horizontal, vertical, silhouette, measure):
         """Create a tile from a center point.
 
@@ -709,6 +776,7 @@ class Harmonizer(object):
         # determine position
         positions = {height: position for stave in self.staff for position, height in stave.items()}
         position = positions[vertical]
+        position = max([position - 1, self.positions[0]])
 
         # add attributes
         tile['position'] = position
@@ -922,6 +990,7 @@ class Harmonizer(object):
 
             # get all predicted centers
             points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
+            weights = [float(prediction[index]) for prediction in predictions if prediction[index] == max(prediction)]
 
             # check for points
             if len(points) > 0:
@@ -933,11 +1002,16 @@ class Harmonizer(object):
                 # get the cluster centers
                 condensations = []
                 clusters = propagation.cluster_centers_
-                for cluster in clusters:
+                for indexii, cluster in enumerate(clusters):
+
+                    # get average points
+                    horizontals = [point[0] for point, label in zip(points, propagation.labels_) if label == indexii]
+                    verticals = [point[1] for point, label in zip(points, propagation.labels_) if label == indexii]
+                    weighting = [weight for weight, label in zip(weights, propagation.labels_) if label == indexii]
 
                     # make condensation
-                    horizontal = int(float(cluster[0]))
-                    vertical = int(float(cluster[1]))
+                    horizontal = int(numpy.average(horizontals, weights=weighting))
+                    vertical = int(numpy.average(verticals, weights=weighting))
                     condensation = self._tesselate(horizontal, vertical, silhouette, measure)
                     condensations.append(condensation)
 
@@ -982,7 +1056,7 @@ class Harmonizer(object):
 
         return None
 
-    def discover(self, name='concerto.png', extent=30):
+    def discover(self, name='concerto.png', extent=3):
         """Discover the notes in an image file.
 
         Arguments:
@@ -1163,6 +1237,35 @@ class Harmonizer(object):
 
             # print
             print('{}: {}%'.format(score, round(percent * 100)))
+
+        return None
+
+    def harmonize(self):
+        """Determine chords based on melody notes.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Populates:
+            self.chords
+        """
+
+        # go through each measure
+        for index, measure in enumerate(self.notes):
+
+            # print
+            print('measure {} or {}'.format(index, len(self.notes)))
+
+            # get all pitches in the measure
+            pitches = [note['pitch'] for note in measure]
+            pitches = list(set(pitches))
+
+            # get scores
+            scores = self.theorize(*pitches)
+            self.annotate(index, scores[0][0])
 
         return None
 
@@ -1945,7 +2048,7 @@ class Harmonizer(object):
 
         # set black and white
         self.palette['white'] = [220, 220, 220, 255]
-        self.palette['black'] = [80, 80, 80, 255]
+        self.palette['black'] = [60, 60, 60, 255]
 
         # set the rest of roygbiv
         self.palette['orange'] = [255, 180, 0, 255]
@@ -2014,6 +2117,71 @@ class Harmonizer(object):
             self.verify(index)
 
         return None
+
+    def theorize(self, *pitches):
+        """Theorize about the chord given the pitches.
+
+        Arguments:
+            *pitches: unpacked tuple of strings
+
+        Returns:
+            list of tuples
+        """
+
+        # find signature pitches not represented
+        signature = self.signatures[self.signature]
+        notes = [self._fix(pitch) for pitch in pitches]
+        signature = [member for member in signature if self._fix(member) not in notes]
+
+        # print
+        print('pitches: {} + ({})'.format(list(pitches), signature))
+
+        # use each pitch as a root
+        scores = []
+        for root in pitches:
+
+            # get all intervals
+            harmony = [pitch for pitch in pitches if pitch != root]
+            intervals = [self.wheel[root][pitch] for pitch in harmony]
+            fixations = [int(self._fix(interval)) for interval in intervals]
+
+            # get all implied intervals lower than the highest pitch but at least until the fifth
+            maximum = max([7, max(fixations)])
+            implications = [self.wheel[root][pitch] for pitch in signature]
+            implications = [interval for interval in implications if int(self._fix(interval)) < maximum]
+
+            # compute scores for each chord in the lexicon
+            for chord, structure in self.lexicon.items():
+
+                # start score and compare intervals
+                score = 0
+                for interval in structure:
+
+                    # check for match
+                    if interval in intervals:
+
+                        # add to score by the inverse of the interval
+                        score += 1 / float(int(self._fix(interval)) + int('b' in interval))
+
+                    # check against implications
+                    if interval in implications:
+
+                        # add some portion to the score
+                        weight = 100
+                        score += 1 / (weight * float(int(self._fix(interval)) + int('b' in interval)))
+
+                # add score
+                scores.append((root + chord, score, structure))
+
+        # sort scores and annotate
+        scores.sort(key=lambda triplet: len(triplet[2]))
+        scores.sort(key=lambda triplet: triplet[1], reverse=True)
+
+        # print
+        [print(score) for score in scores[:7]]
+
+        return scores
+
 
     def train(self, eras=None, epochs=None, grade=100):
         """Train the model.
