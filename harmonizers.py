@@ -144,6 +144,9 @@ class Harmonizer(object):
         self._define()
         self._tabulate()
 
+        # construct sheet
+        self._glue()
+
         return
 
     def _balance(self, samples):
@@ -458,34 +461,29 @@ class Harmonizer(object):
         paths.sort()
 
         # collect images
-        images = [Image.open('{}/{}'.format(self.directory, path)) for path in paths]
+        images = [Image.open('{}/{}'.format(self.directory, path)).convert('RGBA') for path in paths]
         images = [numpy.array(image) for image in images]
 
         # get longest row
         width = max([len(image[0]) for image in images])
-        halves = [1 + int(width - len(image[0]) / 2) for image in images]
+        halves = [1 + int((width - len(image[0])) / 2) for image in images]
 
-        # pad the images
+        # pad the images with margins
+        sections = []
         for image, half in zip(images, halves):
 
-            # go through each row
-            for index, row in enumerate(image):
+            # make margin
+            margin = [[[255] * 4] * half] * len(image)
+            margin = numpy.array(margin)
 
-                # add padding
-                padding = [[255] * 4] * half + row + [[255] * 4] * half
-                padding = numpy.array(padding[:width])
+            # make section
+            section = numpy.concatenate((margin, image, margin), axis=1)
+            section = numpy.array([row[:width] for row in section])
+            sections.append(section)
 
-                # correct array
-                image[index] = padding
-
-        # concatenate
-        sheet = images[0]
-        for image in images[1:]:
-
-            # concatenate
-            sheet = numpy.concatenate(sheet, image)
-
-        # set sheet
+        # make sheet
+        sheet = numpy.concatenate(sections, axis=0)
+        sheet = numpy.array(sheet, dtype='uint8')
         self.sheet = sheet
 
         return None
@@ -1146,11 +1144,11 @@ class Harmonizer(object):
 
         return None
 
-    def discover(self, name='concerto.png', extent=3):
+    def discover(self, extent=None):
         """Discover the notes in an image file.
 
         Arguments:
-            name: str, the filename
+            extent: int, number of measures to scan
 
         Returns:
             None
@@ -1162,12 +1160,11 @@ class Harmonizer(object):
             self.tiles
         """
 
-        # get file and convert
-        sheet = Image.open(name).convert('RGBA')
-        sheet = numpy.array(sheet)
-        self.original = sheet
-        self.sheet = sheet
-        self.painting = sheet
+        # establish sheet
+        self.original = self.sheet
+        self.sheet = self.sheet
+        self.painting = self.sheet
+        sheet = self.sheet
 
         # making silhouette
         print('making silhouette...')
@@ -1185,12 +1182,19 @@ class Harmonizer(object):
         # begin discoveries
         discoveries = {category: [] for category in self.categories}
 
+        # check extent
+        measures = self.measures
+        if extent:
+
+            # shorten to extent
+            measures = self.measures[:extent]
+
         # check along each staff line
         print('finding notes...')
         reports = []
         notes = []
         chords = []
-        for number, measure in enumerate(self.measures[:extent]):
+        for number, measure in enumerate(measures):
 
             # status
             print('measure {} of {}...'.format(number, len(self.measures)))
@@ -2502,7 +2506,7 @@ class Harmonizer(object):
 
 
 # # load harmonizer
-harmo = Harmonizer()
+harmo = Harmonizer('pieces/concerto')
 harmo.prepare()
 harmo.load()
 
@@ -2510,11 +2514,11 @@ harmo.load()
 print('imported harmonizers.')
 
 
-# # script
-# harmo.discover()
-# harmo.harmonize()
-# harmo.paint()
-# harmo.see()
+# script
+harmo.discover(3)
+harmo.harmonize()
+harmo.paint()
+harmo.see()
 
 
 
