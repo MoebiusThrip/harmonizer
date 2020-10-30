@@ -506,6 +506,28 @@ class Harmonizer(object):
 
         return None
 
+    def _hex(self, color):
+        """Turn a RGB color into a hexadecimal string.
+
+        Arguments:
+            color: list of ints
+
+        Returns:
+            string
+        """
+
+        # define digits
+        digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+
+        # create hexadecimal string
+        hexadecimal = '#'
+        for intensity in color:
+
+            # create hexadecimal
+            hexadecimal += digits[int(intensity / 16)] + digits[intensity % 16]
+
+        return hexadecimal
+
     def _ingest(self):
         """Ingest the source material, training data conversations.
 
@@ -886,7 +908,7 @@ class Harmonizer(object):
         """
 
         # define major chords
-        self.lexicon[''] = ['3', '5']
+        self.lexicon[' '] = ['3', '5']
         self.lexicon['maj7'] = ['3', '5', '7']
         self.lexicon['maj9'] = ['3', '5', '7', '9']
         self.lexicon['maj11'] = ['3', '5', '7', '9', '11']
@@ -2296,15 +2318,34 @@ class Harmonizer(object):
 
         return None
 
-    def spin(name=''):
-        """"Spin a color wheel.
+    def spin(self, *chords):
+        """"Spin a color wheel from chords.
 
         Arguments:
-            name: str
+            *chords: unpacked tuple of chord names
 
         Returns:
             None
         """
+
+        # begin pitches
+        pitches = []
+
+        # check for empty chords
+        if len(chords) < 1:
+
+            # gather all pitches
+            pitches += [pitch for pitch in self.wheel.keys()]
+
+        # otherwise go through each chord
+        for chord in chords:
+
+            # split the chord
+            root, harmony = self._peel(chord)
+
+            # get the enharmonic root and add to pitches
+            root = self._enharmonize(root)
+            pitches.append(root)
 
         # default name
         presets = {}
