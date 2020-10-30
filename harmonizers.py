@@ -47,7 +47,7 @@ class Harmonizer(object):
         object
     """
 
-    def __init__(self, directory='pieces/concerto', key='D', signature='F', mode='flats', clef='bass'):
+    def __init__(self, directory='pieces/concerto', key='D', signature='F', polarity=None, clef='bass'):
         """Initialize an Harmonizer instance.
 
         Arguments:
@@ -112,7 +112,7 @@ class Harmonizer(object):
         self.key = key
         self.clef = clef
         self.signature = signature
-        self.mode = mode
+        self.polarity = polarity
 
         # current sheet properties
         self.directory = directory
@@ -131,9 +131,11 @@ class Harmonizer(object):
         # general harmonic properties
         self.clefs = {}
         self.wheel = {}
+        self.inverse = {}
         self.spectrum = {}
         self.signatures = {}
         self.lexicon = {}
+        self.scales = {}
         self.enharmonics = {}
 
         # annotation properties
@@ -141,6 +143,7 @@ class Harmonizer(object):
         self.size = 30
 
         # define general harmonic properties
+        self._polarize()
         self._define()
         self._tabulate()
 
@@ -344,13 +347,28 @@ class Harmonizer(object):
         spectrum = {interval: color for interval, color in zip(intervals, rainbow)}
         self.spectrum = spectrum
 
-        # define wheel
+        # define wheel and inverse wheel
         indexing = lambda pitch, pitchii: (mirror[pitchii] - mirror[pitch]) % len(spectrum)
         self.wheel = {pitch: {pitchii: intervals[indexing(pitch, pitchii)] for pitchii in pitches} for pitch in pitches}
+        self.inverse = {pitch: {intervals[indexing(pitch, pitchii)]: pitchii for pitchii in pitches} for pitch in pitches}
 
-        # define signatures
+        # define sharp signatures
         self.signatures['C'] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+        self.signatures['G'] = ['G', 'A', 'B', 'C', 'D', 'E', 'F#']
+        self.signatures['D'] = ['D', 'E', 'F#', 'G', 'A', 'B', 'C#']
+        self.signatures['A'] = ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#']
+        self.signatures['E'] = ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#']
+        self.signatures['B'] = ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#']
+        self.signatures['F#'] = ['F#', 'G#', 'A#', 'B', 'C#', 'D#', 'E#']
+        self.signatures['C#'] = ['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'B#']
+
+        # define flat signatures
         self.signatures['F'] = ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']
+        self.signatures['Bb'] = ['Bb', 'C', 'D', 'Eb', 'F', 'G', 'A']
+        self.signatures['Eb'] = ['Eb', 'F', 'G', 'Ab', 'Bb', 'C', 'D']
+        self.signatures['Ab'] = ['Ab', 'Bb', 'C', 'Db', 'Eb', 'F', 'G']
+        self.signatures['Db'] = ['Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C']
+        self.signatures['Gb'] = ['Gb', 'Ab', 'Bb', 'Cb', 'Db', 'Eb', 'F']
 
         # define flat enharmonics
         flats = {note: note for note in notes}
@@ -718,6 +736,64 @@ class Harmonizer(object):
 
         return pad
 
+    def _peel(self, chord):
+        """Peel off the root from the rest of the chord.
+
+        Arguments:
+            chord: str
+
+        Returns:
+            (str, str) tuple, the root and harmony
+        """
+
+        # get all enharmonic pitches
+        pitches = [pitch for pitch in self.enharmonics['flats'].keys()]
+
+        # get all pitches that the chord begins with
+        pitches = [pitch for pitch in pitches if chord.startswith(pitch)]
+
+        # organize by length
+        pitches.sort(key=len(pitct), reverse=True)
+
+        # the top is the root
+        root = pitches[0]
+
+        # the remainder is the harmony
+        harmony = chord.replace(root, '')
+
+        return root, harmony
+
+    def _polarize(self):
+        """Choose the polarity based on the given signature.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+
+        Populates:
+            self.polarity
+        """
+
+        # set polarity
+        polarity = self.polarity
+
+        # use key to guess
+        if not polarity:
+
+            # use key signature
+            polarity = 'sharps'
+            if 'b' in self.signature or self.signature == 'F':
+
+                # set to flats
+                polarity = 'flats'
+
+        # set attribute
+        self.polarity = polarity
+
+        return None
+
     def _punch(self, shadow, point, width=None, height=None):
         """Punch out a standard sized shadow from a bigger shadow at specified point.
 
@@ -832,6 +908,15 @@ class Harmonizer(object):
         # define other chords
         self.lexicon['dim'] = ['b3', 'b5']
         self.lexicon['m7b5'] = ['b3', 'b5', 'b7']
+
+        # define greek modes
+        self.scales['Lydian'] = ['3', '5', '7', '9', 'b5', '13']
+        self.scales['Ionian'] = ['3', '5', '7', '9', '11', '13']
+        self.scales['Mixolydian'] = ['3', '5', 'b7', '9', '11', '13']
+        self.scales['Dorian'] = ['b3', '5', 'b7', '9', '11', '13']
+        self.scales['Aeolian'] = ['b3', '5', 'b7', '9', '11', 'b13']
+        self.scales['Phrygian'] = ['b3', '5', 'b7', 'b9', '11', 'b13']
+        self.scales['Locrian'] = ['b3', 'b5', 'b7', 'b9', '11', 'b13']
 
         return None
 
@@ -1705,12 +1790,10 @@ class Harmonizer(object):
             if chord:
 
                 # determine chord root
-                pitches = [key for key in self.wheel.keys() if chord.startswith(key)]
-                pitches.sort(key=lambda pitch: len(pitch), reverse=True)
-                pitch = pitches[0]
+                root, harmony = self._peel(chord)
 
                 # get color
-                interval = self.wheel[self.key][pitch]
+                interval = self.wheel[self.key][root]
                 color = self.spectrum[interval]
 
                 # add chord to painting
@@ -1942,6 +2025,9 @@ class Harmonizer(object):
             None
         """
 
+        # copy painting
+        painting = numpy.copy(self.painting)
+
         # break staves into overlapping chunks
         sections = []
         staves = [index for index, _ in enumerate(self.staff)]
@@ -1957,8 +2043,6 @@ class Harmonizer(object):
 
             # reset block to full chunk after title
             block = chunk
-
-        print(sections)
 
         # create pages by cutting in between boundaries
         pages = []
@@ -1976,7 +2060,7 @@ class Harmonizer(object):
                 top = int((self.staff[first][self.positions[1] - 1] + self.staff[first - 1][self.positions[0]]) / 2)
 
             # get bottom index
-            bottom = len(self.painting)
+            bottom = len(painting)
             if last < len(self.staff) - 1:
 
                 # calculate bottom
@@ -1986,19 +2070,22 @@ class Harmonizer(object):
             else:
 
                 # get average length of all pages
-                length = int(numpy(average([len(page) for page in pages])))
+                length = int(numpy.average([len(page) for page in pages]))
                 if bottom - top < length:
 
                     # add margin to page
-                    margin = [[[255] * 4] * len(self.painting[0])] * (bottom - top)
-                    self.painting = numpy.concatenate((self.painting, margin), axis=0)
+                    margin = numpy.array([[[255] * 4] * len(painting[0])] * (bottom - top), dtype='uint8')
+                    painting = numpy.concatenate((painting, margin), axis=0)
 
                 # get bottom
-                bottom = len(self.painting)
+                bottom = len(painting)
 
             # get page
-            page = Image.fromarray(self.painting[top:bottom]).convert('RGB')
+            page = painting[top:bottom]
             pages.append(page)
+
+        # convert pages
+        pages = [Image.fromarray(page).convert('RGB') for page in pages]
 
         # save as pdf
         deposit = self.directory + '.pdf'
@@ -2206,6 +2293,90 @@ class Harmonizer(object):
         # snuff out the note
         notes = [member for index, member in enumerate(self.notes[measure]) if index != note]
         self.notes[measure] = notes
+
+        return None
+
+    def spin(name=''):
+        """"Spin a color wheel.
+
+        Arguments:
+            name: str
+
+        Returns:
+            None
+        """
+
+        # default name
+        presets = {}
+        presets['ionian'] = 'C D E F G A B'
+        presets['major'] = 'C E G'
+        presets['minor'] = 'C Eb G'
+        presets['minor7th'] = 'C Eb G Bb'
+        presets['dominant7th'] = 'C E G Bb'
+        presets['minor6th'] = 'C Eb G A'
+        presets['harmonic'] = 'C D Eb F G Ab B'
+        presets['diminished'] = 'C Eb Gb A'
+        presets['dorian'] = 'C D Eb F G A Bb'
+        presets['phrygian'] = 'C Db Eb F G Ab Bb'
+        presets['locrian'] = 'C Db Eb F Gb Ab Bb'
+        presets['lydian'] = 'C D E Gb G A B'
+        presets['mixolydian'] = 'C D E F G A Bb'
+        presets['aeolian'] = 'C D Eb F G Ab Bb'
+        presets['whole'] = 'C D E Gb Ab Bb'
+        presets['augmented'] = 'C E Ab'
+
+        # Pie chart, where the slices will be ordered and plotted counter-clockwise:
+        labels = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7']
+        labels = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+        labels = ['G', 'Ab', 'A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb']
+        sizes = [1] * 12
+        colors = ['lightgray', 'black', 'magenta', 'crimson', 'darkorange', 'green', 'midnightblue', 'dodgerblue', 'purple', 'cyan', 'yellow', 'chartreuse']
+
+        # set default colors scheme
+        scheme = {label: color for label, color in zip(labels, colors)}
+        chord = {label: 'white' for label in labels}
+
+
+        # try to get inclusions from defaults
+        try:
+
+            # get from defaults
+            inclusions = presets[name]
+
+        # otherwise
+        except KeyError:
+
+            # name by default
+            inclusions = name
+
+        # split inclusions
+        inclusions = inclusions.split()
+
+        # set default inclusions
+        if len(inclusions) < 1:
+
+            # set to all
+            inclusions = labels
+
+        # apply inclusions
+        for inclusion in inclusions:
+
+            # set color with scheme
+            chord[inclusion] = scheme[inclusion]
+
+        # reset colors
+        colors = [chord[tone] for tone in labels]
+
+        # reverse lists to go clockwise
+        labels.reverse()
+        colors.reverse()
+
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes, labels=labels, startangle=105, colors=colors)
+        ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+        plt.title(name)
+        plt.show()
+        plt.close()
 
         return None
 
@@ -2588,7 +2759,7 @@ harmo.prepare()
 harmo.load()
 
 # script
-harmo.discover()
+harmo.discover(3)
 harmo.harmonize()
 harmo.paint()
 harmo.see()
