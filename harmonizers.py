@@ -1694,6 +1694,7 @@ class Harmonizer(object):
 
             # override
             note['pitch'] = self.enharmonize(pitch)
+            note['color'] = self.spectrum[self.wheel[self.key][pitch]]
 
         # add the note to the measure
         self.notes[measure].append(note)
@@ -3000,18 +3001,25 @@ harmo = Harmonizer('pieces/concerto')
 harmo.prepare()
 harmo.load()
 
-# script
-# harmo.discover()
-# harmo.harmonize()
-# harmo.paint()
-# harmo.see()
-# harmo.publish()
-# harmo.stash()
-
+# recover
 harmo.recover()
-harmo.light(3, 8, 12, 18, 'G')
-harmo.paint(3)
+
+# corrections
+harmo.correct(0, 0, '')
+harmo.correct(1, 1, '', 2, '', 5, '')
+harmo.correct(2, 0, 'G#', 1, 'E')
+harmo.correct(3, 0, 'C#')
+harmo.correct(4, 1, 'F#', 3, 'F#')
+
+# view
+harmo.harmonize()
+harmo.paint(0, 5)
 harmo.publish()
+
+
+
+
+
 
 
 
