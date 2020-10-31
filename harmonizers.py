@@ -450,6 +450,25 @@ class Harmonizer(object):
 
         return black
 
+    def _dump(self, data, deposit):
+        """Dump some data into a json file.
+
+        Arguments:
+            data: dict
+            deposit: str
+
+        Returns:
+            None
+        """
+
+        # make file
+        with open(deposit, 'w') as pointer:
+
+            # dump data
+            json.dump(data, deposit)
+
+        return None
+
     def _fix(self, element):
         """Fix the accidentals on a pitch or interval.
 
@@ -850,6 +869,24 @@ class Harmonizer(object):
         punchout = shadow[top:bottom, left:right]
 
         return punchout
+
+    def _retrieve(self, path):
+        """Retrieve data from a json file.
+
+        Arguments:
+            path: str, the file path
+
+        Returns:
+            dict
+        """
+
+        # open file
+        with open(path, 'r') as pointer:
+
+            # get the data
+            data = json.load(pointer)
+
+        return data
 
     def _scale(self, data, lowest=-0.5, highest=0.5):
         """Scale data to a particular range.
@@ -2120,6 +2157,27 @@ class Harmonizer(object):
 
         return None
 
+    def recover(self):
+        """Recover all found objects and adjustments.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # load up elements
+        path = '{}/{}'.format(self.directory, 'elements.json')
+        elements = self._retrieve(path)
+
+        # set attributes
+        self.notes = elements.notes
+        self.measures = elements.measures
+        self.chords = elements.chords
+
+        return None
+
     def remember(self, path):
         """Remember the picture for later.
 
@@ -2541,6 +2599,23 @@ class Harmonizer(object):
 
         return None
 
+    def stash(self):
+        """Stash the elements in a file for retrieval later.
+
+        Arguments:
+            None
+
+        Returns:
+            None
+        """
+
+        # store all elements
+        elements = {'chords': self.chords, 'notes': self.notes, 'measures': self.measures}
+        deposit = '{}/{}'.format(self.directory, 'elements.json')
+        self._dump(elements, deposit)
+
+        return None
+
     def test(self, number=10):
         """Test a random selection of a number of training samples to verify.
 
@@ -2817,11 +2892,12 @@ harmo.prepare()
 harmo.load()
 
 # script
-# harmo.discover(3)
-# harmo.harmonize()
-# harmo.paint()
-# harmo.see()
-# harmo.publish()
+harmo.discover(3)
+harmo.harmonize()
+harmo.paint()
+harmo.see()
+harmo.publish()
+harmo.stash()
 
 
 
