@@ -10,6 +10,7 @@ from time import clock, time
 from random import random, choice
 from datetime import datetime
 from math import sqrt
+from pprint import pprint
 
 # import pil and skimage
 from PIL import Image, ImageFont, ImageDraw
@@ -2992,6 +2993,22 @@ class Harmonizer(object):
 
         return surrounded
 
+    def view(self, measure):
+        """View a measure's contents.
+
+        Arguments:
+            measure: int
+
+        Returns:
+            None
+        """
+
+        # pprint
+        print(' ')
+        pprint(self.notes[measure])
+
+        return None
+
 
 # status
 print('imported harmonizers.')
@@ -3004,16 +3021,18 @@ harmo.load()
 # recover
 harmo.recover()
 
-# corrections
-harmo.correct(0, 0, '')
-harmo.correct(1, 1, '', 2, '', 5, '')
-harmo.correct(2, 0, 'G#', 1, 'E')
-harmo.correct(3, 0, 'C#')
-harmo.correct(4, 1, 'F#', 3, 'F#')
+# # corrections
+# harmo.correct(6, 0, 'G#')
+# harmo.light(7, 4, 0.1, 1, 'C')
+# harmo.light(7, 3, 0.62, 1, 'B')
+# harmo.correct(8, 1, '', 2, 'G#', 4, '', 9, '')
+# harmo.light(9, 8, 0.62, 1, 'G')
+harmo.correct(7, 0, '')
+
 
 # view
 harmo.harmonize()
-harmo.paint(0, 5)
+harmo.paint(0, 11)
 harmo.publish()
 
 
