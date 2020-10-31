@@ -14,6 +14,9 @@ from math import sqrt
 # import pil and skimage
 from PIL import Image, ImageFont, ImageDraw
 
+# import matplotlib
+from matplotlib import pyplot
+
 # import sklearn
 from sklearn.cluster import AffinityPropagation, MeanShift
 
@@ -777,7 +780,7 @@ class Harmonizer(object):
         pitches = [pitch for pitch in pitches if chord.startswith(pitch)]
 
         # organize by length
-        pitches.sort(key=len(pitct), reverse=True)
+        pitches.sort(key=lambda pitch: len(pitch), reverse=True)
 
         # the top is the root
         root = pitches[0]
@@ -2389,6 +2392,7 @@ class Harmonizer(object):
         pitches = list(set(pitches))
 
         # make default labels and colors
+        sizes = [1] * 12
         labels = [''] * 12
         colors = [self._hex([255, 255, 255, 255])] * 12
 
@@ -2401,7 +2405,7 @@ class Harmonizer(object):
             color = self.palette[self.spectrum[interval]]
 
             # update entry
-            labels[index] = pitch
+            labels[index] = '{} ({})'.format(pitch, interval)
             colors[index] = self._hex(color)
 
         # reverse lists to go clockwise
@@ -2415,7 +2419,7 @@ class Harmonizer(object):
         axis.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 
         # add title
-        title += 'in the Key of ' + self.key
+        title += 'in the Key of ' + self.key + '\n '
         pyplot.title(title)
 
         # save at wheel
@@ -2425,7 +2429,7 @@ class Harmonizer(object):
         if stash:
 
             # save in folder as well
-            deposit = 'pieces/wheels/' + title.replace(' ', '_') + '.png'
+            deposit = 'pieces/wheels/' + title.replace(' ', '_').replace('\n', '') + '.png'
             pyplot.savefig(deposit)
 
         # clear plot
@@ -2813,11 +2817,12 @@ harmo.prepare()
 harmo.load()
 
 # script
-harmo.discover(3)
-harmo.harmonize()
-harmo.paint()
-harmo.see()
-harmo.publish()
+# harmo.discover(3)
+# harmo.harmonize()
+# harmo.paint()
+# harmo.see()
+# harmo.publish()
+harmo.spin()
 
 
 
