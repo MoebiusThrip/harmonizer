@@ -137,6 +137,7 @@ class Harmonizer(object):
         self.lexicon = {}
         self.scales = {}
         self.enharmonics = {}
+        self.intervals = []
 
         # annotation properties
         self.font = 'Arial Black'
@@ -328,14 +329,14 @@ class Harmonizer(object):
         self.clefs['bass'] = {position: notes[(position + 6) % 7] for position in range(*self.positions)}
 
         # for flats
-        if self.mode == 'flats':
+        if self.polarity == 'flats':
             
             # define pitches and mirror
             pitches = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
             mirror = {pitch: index for index, pitch in enumerate(pitches)}
 
         # or sharps
-        if self.mode == 'sharps':
+        if self.polarity == 'sharps':
             
             # define pitches and mirror
             pitches = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
@@ -345,6 +346,7 @@ class Harmonizer(object):
         intervals = ['1', 'b9', '9', 'b3', '3', '11', 'b5', '5', 'b13', '13', 'b7', '7']
         rainbow = ['white', 'black', 'magenta', 'red', 'orange', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
         spectrum = {interval: color for interval, color in zip(intervals, rainbow)}
+        self.intervals = intervals
         self.spectrum = spectrum
 
         # define wheel and inverse wheel
@@ -908,7 +910,7 @@ class Harmonizer(object):
         """
 
         # define major chords
-        self.lexicon[' '] = ['3', '5']
+        self.lexicon['maj'] = ['3', '5']
         self.lexicon['maj7'] = ['3', '5', '7']
         self.lexicon['maj9'] = ['3', '5', '7', '9']
         self.lexicon['maj11'] = ['3', '5', '7', '9', '11']
@@ -1386,7 +1388,7 @@ class Harmonizer(object):
         """
 
         # get enharmonic note
-        enharmonic = self.enharmonics[self.mode][pitch]
+        enharmonic = self.enharmonics[self.polarity][pitch]
 
         return enharmonic
 
@@ -2318,24 +2320,29 @@ class Harmonizer(object):
 
         return None
 
-    def spin(self, *chords):
+    def spin(self, *chords, stash=False):
         """"Spin a color wheel from chords.
 
         Arguments:
             *chords: unpacked tuple of chord names
+            stash=False: boolean, save figure?
 
         Returns:
             None
         """
 
-        # begin pitches
+        # begin pitches and title
         pitches = []
+        title = ''
 
         # check for empty chords
         if len(chords) < 1:
 
             # gather all pitches
             pitches += [pitch for pitch in self.wheel.keys()]
+
+            # add to ttile
+            title += 'Chromatic Scale '
 
         # otherwise go through each chord
         for chord in chords:
@@ -2347,77 +2354,83 @@ class Harmonizer(object):
             root = self._enharmonize(root)
             pitches.append(root)
 
-        # default name
-        presets = {}
-        presets['ionian'] = 'C D E F G A B'
-        presets['major'] = 'C E G'
-        presets['minor'] = 'C Eb G'
-        presets['minor7th'] = 'C Eb G Bb'
-        presets['dominant7th'] = 'C E G Bb'
-        presets['minor6th'] = 'C Eb G A'
-        presets['harmonic'] = 'C D Eb F G Ab B'
-        presets['diminished'] = 'C Eb Gb A'
-        presets['dorian'] = 'C D Eb F G A Bb'
-        presets['phrygian'] = 'C Db Eb F G Ab Bb'
-        presets['locrian'] = 'C Db Eb F Gb Ab Bb'
-        presets['lydian'] = 'C D E Gb G A B'
-        presets['mixolydian'] = 'C D E F G A Bb'
-        presets['aeolian'] = 'C D Eb F G Ab Bb'
-        presets['whole'] = 'C D E Gb Ab Bb'
-        presets['augmented'] = 'C E Ab'
+            # search chord dictionary
+            structure = []
+            try:
 
-        # Pie chart, where the slices will be ordered and plotted counter-clockwise:
-        labels = ['1', 'b2', '2', 'b3', '3', '4', 'b5', '5', 'b6', '6', 'b7', '7']
-        labels = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
-        labels = ['G', 'Ab', 'A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb']
-        sizes = [1] * 12
-        colors = ['lightgray', 'black', 'magenta', 'crimson', 'darkorange', 'green', 'midnightblue', 'dodgerblue', 'purple', 'cyan', 'yellow', 'chartreuse']
+                # get the chord structure
+                structure += self.lexicon[harmony]
+                title += chord + ' '
 
-        # set default colors scheme
-        scheme = {label: color for label, color in zip(labels, colors)}
-        chord = {label: 'white' for label in labels}
+            # otherwise
+            except KeyError:
 
+                # try to search the scales
+                try:
 
-        # try to get inclusions from defaults
-        try:
+                    # search the scales
+                    structure += self.scales[harmony]
+                    title += chord + ' Scale '
 
-            # get from defaults
-            inclusions = presets[name]
+                # otherwise
+                except KeyError:
 
-        # otherwise
-        except KeyError:
+                    # pass
+                    pass
 
-            # name by default
-            inclusions = name
+            # go through each interval
+            for interval in structure:
 
-        # split inclusions
-        inclusions = inclusions.split()
+                # get the appropriate pitch
+                pitch = self.inverse[root][interval]
+                pitches.append(pitch)
 
-        # set default inclusions
-        if len(inclusions) < 1:
+        # reduce pitches
+        pitches = list(set(pitches))
 
-            # set to all
-            inclusions = labels
+        # make default labels and colors
+        labels = [''] * 12
+        colors = [self._hex([255, 255, 255, 255])] * 12
 
-        # apply inclusions
-        for inclusion in inclusions:
+        # add pitches to labels
+        for pitch in pitches:
 
-            # set color with scheme
-            chord[inclusion] = scheme[inclusion]
+            # get slice index
+            interval = self.wheel[self.key][pitch]
+            index = self.intervals.index(interval)
+            color = self.palette[self.spectrum[interval]]
 
-        # reset colors
-        colors = [chord[tone] for tone in labels]
+            # update entry
+            labels[index] = pitch
+            colors[index] = self._hex(color)
 
         # reverse lists to go clockwise
         labels.reverse()
         colors.reverse()
 
-        fig1, ax1 = plt.subplots()
-        ax1.pie(sizes, labels=labels, startangle=105, colors=colors)
-        ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-        plt.title(name)
-        plt.show()
-        plt.close()
+        # generate pie chart
+        pyplot.cla()
+        figure, axis = pyplot.subplots()
+        axis.pie(sizes, labels=labels, startangle=105, colors=colors)
+        axis.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+        # add title
+        title += 'in the Key of ' + self.key
+        pyplot.title(title)
+
+        # save at wheel
+        pyplot.savefig('wheel.png')
+
+        # if desired
+        if stash:
+
+            # save in folder as well
+            deposit = 'pieces/wheels/' + title.replace(' ', '_') + '.png'
+            pyplot.savefig(deposit)
+
+        # clear plot
+        pyplot.cla()
+        pyplot.close()
 
         return None
 
