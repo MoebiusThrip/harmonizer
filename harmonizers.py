@@ -42,7 +42,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 print('imported modules.')
 
 
-# Harmonizer class for an LSTM to predict an airn context vector on the context vectors of all conversation utterances prior
+# Harmonizer class to find notes in sheet music pngs
 class Harmonizer(object):
     """Harmonizer class to analyze and color a piece of sheet music.
 
@@ -786,7 +786,7 @@ class Harmonizer(object):
         root = pitches[0]
 
         # the remainder is the harmony
-        harmony = chord.replace(root, '')
+        harmony = chord[len(root):].strip()
 
         return root, harmony
 
@@ -2354,7 +2354,7 @@ class Harmonizer(object):
             root, harmony = self._peel(chord)
 
             # get the enharmonic root and add to pitches
-            root = self._enharmonize(root)
+            root = self.enharmonize(root)
             pitches.append(root)
 
             # search chord dictionary
@@ -2375,11 +2375,11 @@ class Harmonizer(object):
                     structure += self.scales[harmony]
                     title += chord + ' Scale '
 
-                # otherwise
+                # otherwise single note
                 except KeyError:
 
                     # pass
-                    pass
+                    title += root + ' '
 
             # go through each interval
             for interval in structure:
@@ -2429,7 +2429,7 @@ class Harmonizer(object):
         if stash:
 
             # save in folder as well
-            deposit = 'pieces/wheels/' + title.replace(' ', '_').replace('\n', '') + '.png'
+            deposit = 'pieces/wheels/' + title.strip().replace(' ', '_') + '.png'
             pyplot.savefig(deposit)
 
         # clear plot
@@ -2822,7 +2822,6 @@ harmo.load()
 # harmo.paint()
 # harmo.see()
 # harmo.publish()
-harmo.spin()
 
 
 
