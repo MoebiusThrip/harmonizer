@@ -526,7 +526,11 @@ class Harmonizer(object):
         # make sheet
         sheet = numpy.concatenate(sections, axis=0)
         sheet = numpy.array(sheet, dtype='uint8')
+
+        # set sheet attributes
         self.sheet = sheet
+        self.original = sheet
+        self.painting = sheet
 
         return None
 
@@ -1653,6 +1657,52 @@ class Harmonizer(object):
 
         return None
 
+    def light(self, measure, position, numerator, denominator=1.0, pitch=''):
+        """LIght up a note at a measure and position, estimating the proportional distance for the measure.
+
+        Arguments:
+            measure: int, measure index
+            position: int, staff position
+            numerator: float, numerator for ratio
+            denominator=1.0: float, denominator for ratio
+            pitch='': pitch of note
+
+        Returns:
+            None
+
+        Populates:
+            self.measures
+            self.notes
+        """
+
+        # estimate horizontal coordinate
+        ratio = numerator / denominator
+        right = self.measures[measure]['right']
+        left = self.measures[measure]['left']
+        width = right - left
+        horizontal = int(ratio * width) + left
+
+        # get vertical cooridinate from position
+        vertical = self.measures[measure][position]
+
+        # create note
+        element = {'center': (horizontal, vertical), 'position': position}
+        note = self._describe(element)
+
+        # override pitch
+        if pitch:
+
+            # override
+            note['pitch'] = self.enharmonize(pitch)
+
+        # add the note to the measure
+        self.notes[measure].append(note)
+
+        # sort notes by horizontal
+        self.notes[measure].sort(key=lambda note: note['center'][0])
+
+        return None
+
     def load(self, path=None):
         """Load in model from file.
 
@@ -1840,7 +1890,7 @@ class Harmonizer(object):
 
         return None
 
-    def paint(self, monocolor=None, criterion=8):
+    def paint(self, beginning=None, ending=None, monocolor=None, criterion=8):
         """Paint the discovered notes onto the sheet.
 
         Arguments:
@@ -1851,8 +1901,20 @@ class Harmonizer(object):
             None
         """
 
+        # resolve beginning
+        if not beginning:
+
+            # set to zero
+            beginning = 0
+
+        # resolve ending
+        if not ending:
+
+            # set to one past beginning
+            ending = beginning + 1
+
         # coalesce notes
-        notes = [note for measure in self.notes for note in measure]
+        notes = [note for measure in self.notes[beginning: ending] for note in measure]
 
         # go through each category
         print('painting {} notes...'.format(len(notes)))
@@ -1867,48 +1929,51 @@ class Harmonizer(object):
         # annotate chords
         for index, chord in enumerate(self.chords):
 
-            # get coordinates
-            left = self.measures[index]['left']
-            top = self.measures[index][self.positions[1] - 1] - 50
-            bottom = self.measures[index][0]
+            # only use beginning to ending
+            if beginning <= index < ending:
 
-            # convert to image and begin draw mode
-            xerox = Image.fromarray(painting)
-            draw = ImageDraw.Draw(xerox)
+                # get coordinates
+                left = self.measures[index]['left']
+                top = self.measures[index][self.positions[1] - 1] - 50
+                bottom = self.measures[index][0]
 
-            # add measure number to painting
-            font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
-            draw.text((left, bottom), str(index), font=font, fill='black')
+                # convert to image and begin draw mode
+                xerox = Image.fromarray(painting)
+                draw = ImageDraw.Draw(xerox)
 
-            # if there is a chord name
-            if chord:
+                # add measure number to painting
+                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
+                draw.text((left, bottom), str(index), font=font, fill='black')
 
-                # determine chord root
-                root, harmony = self._peel(chord)
+                # if there is a chord name
+                if chord:
 
-                # get color
-                interval = self.wheel[self.key][root]
-                color = self.spectrum[interval]
+                    # determine chord root
+                    root, harmony = self._peel(chord)
 
-                # add chord to painting
-                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
-                draw.text((left, top), chord, font=font, fill='black')
+                    # get color
+                    interval = self.wheel[self.key][root]
+                    color = self.spectrum[interval]
 
-                # convert back to numpy array
-                painting = numpy.array(xerox)
+                    # add chord to painting
+                    font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
+                    draw.text((left, top), chord, font=font, fill='black')
 
-                # shade chord box
-                up = top
-                down = top + self.size
-                right = self.measures[index]['right']
-                box = (up, down, left, right)
-                painting = self.shade(painting, box, color, criterion)
+                    # convert back to numpy array
+                    painting = numpy.array(xerox)
 
-            # otherwise
-            else:
+                    # shade chord box
+                    up = top
+                    down = top + self.size
+                    right = self.measures[index]['right']
+                    box = (up, down, left, right)
+                    painting = self.shade(painting, box, color, criterion)
 
-                # convert back to numpy array
-                painting = numpy.array(xerox)
+                # otherwise
+                else:
+
+                    # convert back to numpy array
+                    painting = numpy.array(xerox)
 
         # set it
         self.painting = painting
@@ -2119,6 +2184,9 @@ class Harmonizer(object):
             None
         """
 
+        # status
+        print('publishing...')
+
         # copy painting
         painting = numpy.copy(self.painting)
 
@@ -2209,12 +2277,12 @@ class Harmonizer(object):
 
         # convert to numbered keys from strings
         measures = [self._numb(measure) for measure in measures]
-        staff = [self.numb(stave) for stave in staff]
+        staff = [self._numb(stave) for stave in staff]
 
         # assign to attributes
         self.notes = notes
-        self.measures = measures
         self.chords = chords
+        self.measures = measures
         self.staff = staff
 
         return None
@@ -2933,13 +3001,17 @@ harmo.prepare()
 harmo.load()
 
 # script
-harmo.discover()
-harmo.harmonize()
-harmo.paint()
-harmo.see()
-harmo.publish()
-harmo.stash()
+# harmo.discover()
+# harmo.harmonize()
+# harmo.paint()
+# harmo.see()
+# harmo.publish()
+# harmo.stash()
 
+harmo.recover()
+harmo.light(3, 8, 12, 18, 'G')
+harmo.paint(3)
+harmo.publish()
 
 
 
