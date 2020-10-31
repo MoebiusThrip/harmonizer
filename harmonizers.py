@@ -465,7 +465,7 @@ class Harmonizer(object):
         with open(deposit, 'w') as pointer:
 
             # dump data
-            json.dump(data, deposit)
+            json.dump(data, pointer)
 
         return None
 
@@ -761,6 +761,36 @@ class Harmonizer(object):
         #print(reconstruction.shape)
 
         return reconstruction
+
+    def _numb(self, element):
+        """Convert a json element into numbered keys from strings.
+
+        Arguments:
+            element: dict
+
+        Returns:
+            dict
+        """
+
+        # reconstruct info
+        info = {}
+
+        # go through each key
+        for position, measurement in element.items():
+
+            # try to make an int
+            try:
+
+                # make int
+                info[int(position)] = measurement
+
+            # otherwise
+            except ValueError:
+
+                # leave as string
+                info[position] = measurement
+
+        return info
 
     def _pad(self, shadow):
         """Pad a shadow with a margin of white.
@@ -2171,10 +2201,21 @@ class Harmonizer(object):
         path = '{}/{}'.format(self.directory, 'elements.json')
         elements = self._retrieve(path)
 
-        # set attributes
-        self.notes = elements.notes
-        self.measures = elements.measures
-        self.chords = elements.chords
+        # unpack elements
+        notes = elements['notes']
+        measures = elements['measures']
+        chords = elements['chords']
+        staff = elements['staff']
+
+        # convert to numbered keys from strings
+        measures = [self._numb(measure) for measure in measures]
+        staff = [self.numb(stave) for stave in staff]
+
+        # assign to attributes
+        self.notes = notes
+        self.measures = measures
+        self.chords = chords
+        self.staff = staff
 
         return None
 
@@ -2610,7 +2651,7 @@ class Harmonizer(object):
         """
 
         # store all elements
-        elements = {'chords': self.chords, 'notes': self.notes, 'measures': self.measures}
+        elements = {'chords': self.chords, 'notes': self.notes, 'measures': self.measures, 'staff': self.staff}
         deposit = '{}/{}'.format(self.directory, 'elements.json')
         self._dump(elements, deposit)
 
@@ -2886,13 +2927,13 @@ class Harmonizer(object):
 # status
 print('imported harmonizers.')
 
-# # load harmonizer
+# load harmonizer
 harmo = Harmonizer('pieces/concerto')
 harmo.prepare()
 harmo.load()
 
 # script
-harmo.discover(3)
+harmo.discover()
 harmo.harmonize()
 harmo.paint()
 harmo.see()
