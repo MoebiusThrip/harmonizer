@@ -1386,6 +1386,29 @@ class Harmonizer(object):
             self.measures
         """
 
+        # set prior index
+        prior = measure - 1
+
+        # check for zero
+        if prior >= 0:
+
+            # check for staff boundary
+            if self.measures[prior][0] == self.measures[measure][0]:
+
+                # create new notes
+                combination = [note for note in self.notes[prior] + self.notes[measure]]
+                self.notes = self.notes[:prior] + [combination] + self.notes[measure + 1:]
+
+                # create new measure
+                combination = self.measures[prior].copy()
+                combination['right'] = self.measures[measure]['right']
+                self.measures = self.measures[:prior] + [combination] + self.measures[measure + 1:]
+
+                # create blank chord
+                self.chords = self.chords[:prior] + [''] + self.chords[measure + 1:]
+
+        return None
+
     def correct(self, measure, *corrections):
         """Correct the notes in a measure.
 
@@ -3159,13 +3182,16 @@ harmo.load()
 harmo.recover()
 
 # corrections
-
+# harmo.correct(40, 1, '', 2, '', 3, '', 4, '', 5, '', 6, '', 7, '')
+# harmo.correct(41, 0, 'Bb', 6, 'C#')
+# harmo.conquer(39)
+# harmo.conquer(40)
 
 
 
 # view
 harmo.harmonize()
-harmo.paint(35, 41)
+harmo.paint(0, 40)
 harmo.publish()
 
 
