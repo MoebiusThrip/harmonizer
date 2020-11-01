@@ -1626,61 +1626,97 @@ class Harmonizer(object):
             self.measures
         """
 
-        # paint the measure
-        self.paint(measure)
+        # set up ruler
+        self.rule(measure)
 
-        # annotate notes
-        painting = Image.fromarray(self.painting)
-        draw = ImageDraw.Draw(painting)
-        font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
-        for index, note in enumerate(self.notes[measure]):
+        # enter editor
+        command = input('??>')
 
-            # add note numbers above notes
-            center = (note['center'][0], note['center'][1] - 30)
-            draw.text(center, str(index), font=font, fill='black')
+        # exit
+        if command in ('exit', 'XXX'):
 
-        # get top and bottom indices of stave
-        top = self.measures[measure][self.positions[1] - 1]
-        bottom = self.measures[measure][self.positions[0]]
-        height = bottom - top
+            return None
 
-        # calculate margins
-        upper = int(top - height / 2)
-        lower = int(bottom + height / 2)
+        # go to next note
+        elif command in ('', 'next'):
 
-        # extract rows and save
-        painting = numpy.array(painting)
-        extract = painting[upper:lower]
+            # go to next measure if possible
+            self.edit(min([measure + 1, len(self.measures) - 1]))
 
-        # calculate measure width
-        left = self.measures[measure]['left']
-        right = self.measures[measure]['right']
-        width = right - left
+        # go to previous
+        elif command in ('back',):
 
-        # draw ruler
-        ruler = {}
-        ruler['large'] = [0.0, 1.0]
-        ruler['medium'] = [0.5]
-        ruler['small'] = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
-        ruler['tiny'] = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
-        ticks = {'large': 50, 'medium': 40, 'small': 20, 'tiny': 10}
-        for size in ('large', 'medium', 'small', 'tiny'):
+            # go to previous if possible
+            self.edit(max([0, measure - 1]))
 
-            # go through each tick
-            for tick in ruler[size]:
+        # stash changes
+        elif command in ('stash',):
 
-                # calculate horizontal
-                horizontal = int(width * tick) + left
+            # stash changes and return
+            self.stash()
+            self.edit(measure)
 
-                # change color to gray
-                for vertical in range(1, ticks[size]):
+        # or recover previous
+        elif command in ('recover',):
 
-                    # change pixel
-                    extract[-vertical][horizontal] = numpy.array([50, 50, 50, 255], dtype='uint8')
+            # recover and return to editor
+            self.recover()
+            self.edit(measure)
 
-        # save image
-        image = Image.fromarray(extract)
-        image.save('stave.png')
+        # add note
+        elif 'light' in command:
+
+            # parse command and add note
+            light, position, ratio, pitch = command.split()
+            self.light(measure, int(position), float(ratio), pitch.replace('_', ''))
+
+            # correct chord
+            self.annotate(measure, self.theorize(*self.hum(measure)))
+
+            # return to editor
+            self.edit(measure)
+
+        # or divide
+        elif 'divide' in command:
+
+            # parse command and divide measure
+            divide, ratio = command.split()
+            ratio = float(ratio)
+            self.divide(measure, ratio)
+
+            # correct chord
+            self.annotate(measure, self.theorize(*self.hum(measure)))
+
+            # return to editor
+            self.edit(measure)
+
+        # or conquer
+        elif 'conquer' in command:
+
+            # conquer the measure
+            self.conquer(measure)
+
+            # correct chord
+            self.annotate(max([0, measure - 1]), self.theorize(*self.hum(max([0, measure - 1]))))
+
+            # return to previous measure
+            self.edit(max([0, measure - 1]))
+
+        # otherwise assume correction
+        else:
+
+            # break command by spaces
+            parsing = lambda string: int(string) if string.isdigit() else string.replace('_', '')
+            corrections = [parsing(correction) for correction in command.split()]
+
+            # make corrections
+            self.correct(measure, *corrections)
+
+            # correct chord
+            self.annotate(measure, self.theorize(*self.hum(measure)))
+
+            # return to editor
+            self.edit(measure)
 
         return None
 
@@ -1812,6 +1848,21 @@ class Harmonizer(object):
         hologram = numpy.array(hologram,  dtype=numpy.uint8)
 
         return hologram
+
+    def hum(self, measure):
+        """Hum the pitches of a measure.
+
+        Arguments:
+            measure: int, measure index
+
+        Returns:
+            list of str
+        """
+
+        # get list of pitches
+        pitches = [self.enharmonize(note['pitch']) for note in self.notes[measure]]
+
+        return pitches
 
     def inspect(self, index):
         """Inspect the training conversation at the particular index
@@ -2558,6 +2609,79 @@ class Harmonizer(object):
 
         # view
         self.see(image)
+
+        return None
+
+    def rule(self, measure):
+        """Begin the editor by drawing the ruler.
+
+        Arguments:
+            measure: int, measure index
+
+        Returns:
+            None
+
+        Populates:
+            self.chords
+            self.notes
+            self.measures
+        """
+
+        # paint the measure
+        self.paint(measure)
+
+        # annotate notes
+        painting = Image.fromarray(self.painting)
+        draw = ImageDraw.Draw(painting)
+        font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
+        for index, note in enumerate(self.notes[measure]):
+
+            # add note numbers above notes
+            center = (note['center'][0], note['center'][1] - 30)
+            draw.text(center, str(index), font=font, fill='black')
+
+        # get top and bottom indices of stave
+        top = self.measures[measure][self.positions[1] - 1]
+        bottom = self.measures[measure][self.positions[0]]
+        height = bottom - top
+
+        # calculate margins
+        upper = int(top - height / 2)
+        lower = int(bottom + height / 2)
+
+        # extract rows and save
+        painting = numpy.array(painting)
+        extract = painting[upper:lower]
+
+        # calculate measure width
+        left = self.measures[measure]['left']
+        right = self.measures[measure]['right']
+        width = right - left
+
+        # draw ruler
+        ruler = {}
+        ruler['large'] = [0.0, 1.0]
+        ruler['medium'] = [0.5]
+        ruler['small'] = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
+        ruler['tiny'] = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
+        ticks = {'large': 50, 'medium': 40, 'small': 20, 'tiny': 10}
+        for size in ('large', 'medium', 'small', 'tiny'):
+
+            # go through each tick
+            for tick in ruler[size]:
+
+                # calculate horizontal
+                horizontal = int(width * tick) + left
+
+                # change color to gray
+                for vertical in range(1, ticks[size]):
+
+                    # change pixel
+                    extract[-vertical][horizontal] = numpy.array([50, 50, 50, 255], dtype='uint8')
+
+        # save image
+        image = Image.fromarray(extract)
+        image.save('stave.png')
 
         return None
 
