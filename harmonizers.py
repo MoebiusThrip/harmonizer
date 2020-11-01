@@ -991,12 +991,60 @@ class Harmonizer(object):
         self.lexicon['maj11'] = ['3', '5', '7', '9', '11']
         self.lexicon['maj13'] = ['3', '5', '7', '9', '11', '13']
 
+        # define altered majors
+        self.lexicon['maj7b5'] = ['3', 'b5', '7']
+        self.lexicon['maj7#5'] = ['3', 'b13', '7']
+        self.lexicon['maj7b9'] = ['3', '5', '7', 'b9']
+        self.lexicon['maj7#9'] = ['3', '5', '7', 'b3']
+        self.lexicon['maj9b5'] = ['3', 'b5', '7', '9']
+        self.lexicon['maj9#5'] = ['3', 'b13', '7', '9']
+        self.lexicon['maj7b5b9'] = ['3', 'b5', '7', 'b9']
+        self.lexicon['maj7#5b9'] = ['3', 'b13', '7', 'b9']
+        self.lexicon['maj7b5#9'] = ['3', 'b5', '7', 'b3']
+        self.lexicon['maj7#5#9'] = ['3', 'b13', '7', 'b3']
+
+        # define altered major elevenths
+        self.lexicon['maj11b5'] = ['3', 'b5', '7', '9', '11']
+        self.lexicon['maj11#5'] = ['3', 'b13', '7', '9', '11']
+        self.lexicon['maj11b9'] = ['3', '5', '7', 'b9', '11']
+        self.lexicon['maj11#9'] = ['3', '5', '7', 'b3', '11']
+        self.lexicon['maj11b5'] = ['3', 'b5', '7', '9', '11']
+        self.lexicon['maj11#5'] = ['3', 'b13', '7', '9', '11']
+        self.lexicon['maj11b5b9'] = ['3', 'b5', '7', 'b9', '11']
+        self.lexicon['maj11#5b9'] = ['3', 'b13', '7', 'b9', '11']
+        self.lexicon['maj11b5#9'] = ['3', 'b5', '7', 'b3', '11']
+        self.lexicon['maj11#5#9'] = ['3', 'b13', '7', 'b3', '11']
+
         # define minor chords
         self.lexicon['m'] = ['b3', '5']
         self.lexicon['m7'] = ['b3', '5', 'b7']
         self.lexicon['m9'] = ['b3', '5', 'b7', '9']
         self.lexicon['m11'] = ['b3', '5', 'b7', '9', '11']
         self.lexicon['m13'] = ['b3', '5', 'b7', '9', '11', '13']
+
+        # define altered minors
+        self.lexicon['m7b5'] = ['b3', 'b5', 'b7']
+        self.lexicon['m7#5'] = ['b3', 'b13', 'b7']
+        self.lexicon['m7b9'] = ['b3', '5', 'b7', 'b9']
+        self.lexicon['m7#9'] = ['b3', '5', 'b7', 'b3']
+        self.lexicon['m9b5'] = ['b3', 'b5', 'b7', '9']
+        self.lexicon['m9#5'] = ['b3', 'b13', 'b7', '9']
+        self.lexicon['m7b5b9'] = ['b3', 'b5', 'b7', 'b9']
+        self.lexicon['m7#5b9'] = ['b3', 'b13', 'b7', 'b9']
+        self.lexicon['m7b5#9'] = ['b3', 'b5', 'b7', 'b3']
+        self.lexicon['m7#5#9'] = ['b3', 'b13', 'b7', 'b3']
+
+        # define altered minor elevenths
+        self.lexicon['m11b5'] = ['b3', 'b5', 'b7', '9', '11']
+        self.lexicon['m11#5'] = ['b3', 'b13', 'b7', '9', '11']
+        self.lexicon['m11b9'] = ['b3', '5', 'b7', 'b9', '11']
+        self.lexicon['m11#9'] = ['b3', '5', 'b7', 'b3', '11']
+        self.lexicon['m11b5'] = ['b3', 'b5', 'b7', '9', '11']
+        self.lexicon['m11#5'] = ['b3', 'b13', 'b7', '9', '11']
+        self.lexicon['m11b5b9'] = ['b3', 'b5', 'b7', 'b9', '11']
+        self.lexicon['m11#5b9'] = ['b3', 'b13', 'b7', 'b9', '11']
+        self.lexicon['m11b5#9'] = ['b3', 'b5', 'b7', 'b3', '11']
+        self.lexicon['m11#5#9'] = ['b3', 'b13', 'b7', 'b3', '11']
 
         # define dominant chords
         self.lexicon['7'] = ['3', '5', 'b7']
@@ -1006,12 +1054,27 @@ class Harmonizer(object):
 
         # define altered dominants
         self.lexicon['7b5'] = ['3', 'b5', 'b7']
+        self.lexicon['7#5'] = ['3', 'b13', 'b7']
         self.lexicon['7b9'] = ['3', '5', 'b7', 'b9']
-        self.lexicon['7b5b9'] = ['3', 'b5', 'b7', 'b9']
+        self.lexicon['7#9'] = ['3', '5', 'b7', 'b3']
         self.lexicon['9b5'] = ['3', 'b5', 'b7', '9']
+        self.lexicon['9#5'] = ['3', 'b13', 'b7', '9']
+        self.lexicon['7b5b9'] = ['3', 'b5', 'b7', 'b9']
+        self.lexicon['7#5b9'] = ['3', 'b13', 'b7', 'b9']
+        self.lexicon['7b5#9'] = ['3', 'b5', 'b7', 'b3']
+        self.lexicon['7#5#9'] = ['3', 'b13', 'b7', 'b3']
+
+        # define altered dominant elevenths
         self.lexicon['11b5'] = ['3', 'b5', 'b7', '9', '11']
+        self.lexicon['11#5'] = ['3', 'b13', 'b7', '9', '11']
         self.lexicon['11b9'] = ['3', '5', 'b7', 'b9', '11']
+        self.lexicon['11#9'] = ['3', '5', 'b7', 'b3', '11']
+        self.lexicon['11b5'] = ['3', 'b5', 'b7', '9', '11']
+        self.lexicon['11#5'] = ['3', 'b13', 'b7', '9', '11']
         self.lexicon['11b5b9'] = ['3', 'b5', 'b7', 'b9', '11']
+        self.lexicon['11#5b9'] = ['3', 'b13', 'b7', 'b9', '11']
+        self.lexicon['11b5#9'] = ['3', 'b5', 'b7', 'b3', '11']
+        self.lexicon['11#5#9'] = ['3', 'b13', 'b7', 'b3', '11']
 
         # define other chords
         self.lexicon['dim'] = ['b3', 'b5']
