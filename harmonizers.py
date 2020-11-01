@@ -3027,7 +3027,7 @@ harmo.recover()
 # harmo.light(7, 3, 0.62, 1, 'B')
 # harmo.correct(8, 1, '', 2, 'G#', 4, '', 9, '')
 # harmo.light(9, 8, 0.62, 1, 'G')
-harmo.correct(7, 0, '')
+# harmo.correct(7, 0, '')
 
 
 # view
