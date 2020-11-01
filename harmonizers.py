@@ -2637,7 +2637,7 @@ class Harmonizer(object):
         for index, note in enumerate(self.notes[measure]):
 
             # add note numbers above notes
-            center = (note['center'][0], note['center'][1] - 30)
+            center = (note['center'][0], note['center'][1] - 50)
             draw.text(center, str(index), font=font, fill='black')
 
         # get top and bottom indices of stave
@@ -3388,7 +3388,7 @@ harmo.recover()
 
 # view
 harmo.harmonize()
-harmo.edit(40)
+harmo.edit(49)
 # harmo.paint(0, 40)
 # harmo.publish()
 
