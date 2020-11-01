@@ -1372,6 +1372,20 @@ class Harmonizer(object):
 
         return condensations
 
+    def conquer(self, measure):
+        """Dissolve a measure boundary, combining the measures.
+
+        Arguments:
+            measure: int, measure index
+
+        Returns:
+            None
+
+        Populates:
+            self.notes
+            self.measures
+        """
+
     def correct(self, measure, *corrections):
         """Correct the notes in a measure.
 
@@ -1532,6 +1546,45 @@ class Harmonizer(object):
 
             # print report
                 print('{} {}'.format(len(discoveries[category]), category))
+
+        return None
+
+    def divide(self, measure, ratio):
+        """Divide a measure in two.
+
+        Arguments:
+            measure: int, measure index
+            ratio: float, distance along measure
+
+        Returns:
+            None
+
+        Populates:
+            self.notes
+            self.measures
+            self.chords
+        """
+
+        # determine break point
+        left = self.measures[measure]['left']
+        right = self.measures[measure]['right']
+        width = right - left
+        division = int(width * ratio) + left
+
+        # add new measure to measures
+        one = self.measures[measure].copy()
+        two = self.measures[measure].copy()
+        one['right'] = division
+        two['left'] = division
+        self.measures = self.measures[:measure] + [one] + [two] + self.measures[measure + 1:]
+
+        # add new measure to notes
+        one = [note for note in self.notes[measure] if note['center'][0] <= division]
+        two = [note for note in self.notes[measure] if note['center'][0] > division]
+        self.notes = self.notes[:measure] + [one] + [two] + self.notes[measure + 1:]
+
+        # add new chord entry
+        self.chords = self.chords[:measure + 1] + [''] + self.chords[measure + 1:]
 
         return None
 
@@ -1741,14 +1794,13 @@ class Harmonizer(object):
 
         return None
 
-    def light(self, measure, position, numerator, denominator=1.0, pitch=''):
+    def light(self, measure, position, ratio, pitch=''):
         """LIght up a note at a measure and position, estimating the proportional distance for the measure.
 
         Arguments:
             measure: int, measure index
             position: int, staff position
-            numerator: float, numerator for ratio
-            denominator=1.0: float, denominator for ratio
+            ratio: float, proportional distance
             pitch='': pitch of note
 
         Returns:
@@ -1760,7 +1812,6 @@ class Harmonizer(object):
         """
 
         # estimate horizontal coordinate
-        ratio = numerator / denominator
         right = self.measures[measure]['right']
         left = self.measures[measure]['left']
         width = right - left
@@ -1778,7 +1829,7 @@ class Harmonizer(object):
 
             # override
             note['pitch'] = self.enharmonize(pitch)
-            note['color'] = self.spectrum[self.wheel[self.key][pitch]]
+            note['color'] = self.spectrum[self.wheel[self.key][self.enharmonize(pitch)]]
 
         # add the note to the measure
         self.notes[measure].append(note)
@@ -3088,7 +3139,7 @@ class Harmonizer(object):
 
         # print
         print(' ')
-        for index, note in self.notes[measure].items():
+        for index, note in enumerate(self.notes[measure]):
 
             # print the note
             print('{}: {}: {}: {}'.format(index, note['pitch'], note['color'], note['center']))
@@ -3110,9 +3161,11 @@ harmo.recover()
 # corrections
 
 
+
+
 # view
 harmo.harmonize()
-harmo.paint(23, 28)
+harmo.paint(35, 41)
 harmo.publish()
 
 
