@@ -1611,6 +1611,59 @@ class Harmonizer(object):
 
         return None
 
+    def edit(self, measure):
+        """Begin the editor at the measure index.
+
+        Arguments:
+            measure: int, measure index
+
+        Returns:
+            None
+
+        Populates:
+            self.chords
+            self.notes
+            self.measures
+        """
+
+        # paint the measure
+        self.paint(measure)
+
+        # annotate notes
+        painting = Image.fromarray(self.painting)
+        draw = ImageDraw.Draw(painting)
+        font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
+        for index, note in enumerate(self.notes[measure]):
+
+            # add note numbers above notes
+            center = (note['center'][0], note['center'][1] - 30)
+            draw.text(center, str(index), font=font, fill='black')
+
+        # get top and bottom indices of stave
+        top = self.measures[measure][self.positions[1] - 1]
+        bottom = self.measures[measure][self.positions[0]]
+        height = bottom - top
+
+        # calculate margins
+        upper = int(top - height / 2)
+        lower = int(bottom + height / 2)
+
+        # extract rows and save
+        painting = numpy.array(painting)
+        extract = painting[upper:lower]
+        
+        # draw ruler
+        large = [0.0, 1.0]
+        medium = [0.5]
+        small = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
+        tiny = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
+
+        # save image
+        image = Image.fromarray(extract)
+        image.save('stave.png')
+
+        return None
+
     def enharmonize(self, pitch):
         """Get the enharmonic match for a pitch.
 
@@ -2821,7 +2874,7 @@ class Harmonizer(object):
 
         # set the rest of roygbiv
         self.palette['orange'] = [255, 180, 0, 255]
-        self.palette['indigo'] = [0, 20, 200, 255]
+        self.palette['indigo'] = [40, 60, 220, 255]
         self.palette['violet'] = [160, 0, 160, 255]
 
         # set the twelvth
@@ -3191,8 +3244,9 @@ harmo.recover()
 
 # view
 harmo.harmonize()
-harmo.paint(0, 40)
-harmo.publish()
+harmo.edit(40)
+# harmo.paint(0, 40)
+# harmo.publish()
 
 
 
