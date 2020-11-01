@@ -1686,6 +1686,7 @@ class Harmonizer(object):
 
             # correct chord
             self.annotate(measure, self.theorize(*self.hum(measure)))
+            self.annotate(measure + 1, self.theorize(*self.hum(measure + 1)))
 
             # return to editor
             self.edit(measure)
@@ -3388,7 +3389,7 @@ harmo.recover()
 
 # view
 harmo.harmonize()
-harmo.edit(49)
+harmo.edit(60)
 # harmo.paint(0, 40)
 # harmo.publish()
 
