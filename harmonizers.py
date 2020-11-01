@@ -1004,9 +1004,20 @@ class Harmonizer(object):
         self.lexicon['11'] = ['3', '5', 'b7', '9', '11']
         self.lexicon['13'] = ['3', '5', 'b7', '9', '11', '13']
 
+        # define altered dominants
+        self.lexicon['7b5'] = ['3', 'b5', 'b7']
+        self.lexicon['7b9'] = ['3', '5', 'b7', 'b9']
+        self.lexicon['7b5b9'] = ['3', 'b5', 'b7', 'b9']
+        self.lexicon['9b5'] = ['3', 'b5', 'b7', '9']
+        self.lexicon['11b5'] = ['3', 'b5', 'b7', '9', '11']
+        self.lexicon['11b9'] = ['3', '5', 'b7', 'b9', '11']
+        self.lexicon['11b5b9'] = ['3', 'b5', 'b7', 'b9', '11']
+
         # define other chords
         self.lexicon['dim'] = ['b3', 'b5']
+        self.lexicon['aug'] = ['3', 'b13']
         self.lexicon['m7b5'] = ['b3', 'b5', 'b7']
+        self.lexicon['mmaj7'] = ['b3', '5', '7']
 
         # define greek modes
         self.scales['Lydian'] = ['3', '5', '7', '9', 'b5', '13']
