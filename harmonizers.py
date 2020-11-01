@@ -1651,12 +1651,32 @@ class Harmonizer(object):
         # extract rows and save
         painting = numpy.array(painting)
         extract = painting[upper:lower]
-        
+
+        # calculate measure width
+        left = self.measures[measure]['left']
+        right = self.measures[measure]['right']
+        width = right - left
+
         # draw ruler
-        large = [0.0, 1.0]
-        medium = [0.5]
-        small = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
-        tiny = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
+        ruler = {}
+        ruler['large'] = [0.0, 1.0]
+        ruler['medium'] = [0.5]
+        ruler['small'] = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
+        ruler['tiny'] = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
+        ticks = {'large': 50, 'medium': 40, 'small': 20, 'tiny': 10}
+        for size in ('large', 'medium', 'small', 'tiny'):
+
+            # go through each tick
+            for tick in ruler[size]:
+
+                # calculate horizontal
+                horizontal = int(width * tick) + left
+
+                # change color to gray
+                for vertical in range(1, ticks[size]):
+
+                    # change pixel
+                    extract[-vertical][horizontal] = numpy.array([50, 50, 50, 255], dtype='uint8')
 
         # save image
         image = Image.fromarray(extract)
