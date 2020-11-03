@@ -139,6 +139,7 @@ class Harmonizer(object):
         self.spectrum = {}
         self.signatures = {}
         self.lexicon = {}
+        self.codex = {}
         self.scales = {}
         self.enharmonics = {}
         self.intervals = []
@@ -1067,111 +1068,55 @@ class Harmonizer(object):
             None
 
         Populates:
+            self.codex
             self.lexicon
+            self.scales
         """
 
-        # define triplets
-        self.lexicon['maj'] = ('1', '3', '5')
-        self.lexicon['majb5'] = ('1', '3', 'b5')
-        self.lexicon['m'] = ('1', 'b3', '5')
-        self.lexicon['dim'] = ('1', 'b3', 'b5')
+        # get cladogram
+        gram = dict(self.cladogram)
 
-        # define major sevenths
-        self.lexicon['maj7'] = ('1', '3', '5', '7')
-        self.lexicon['7'] = ('1', '3', '5', 'b7')
-        self.lexicon['maj7b5'] = ('1', '3', 'b5', '7')
-        self.lexicon['7b5'] = ('1', '3', 'b5', 'b7')
+        # generate all triads
+        combinations = [[third, fifth] for third in gram[3] for fifth in gram[5]]
 
-        # define minor sevenths
-        self.lexicon['mmaj7'] = ('1', 'b3', '5', '7')
-        self.lexicon['m7'] = ('1', 'b3', '5', 'b7')
-        self.lexicon['mmaj7b5'] = ('1', 'b3', 'b5', '7')
-        self.lexicon['m7b5'] = ('1', 'b3', 'b5', 'b7')
+        # add all sevens
+        combinations += [triad + [seventh] for triad in combinations for seventh in gram[7]]
 
-        # define major ninths
-        self.lexicon['maj9'] = ('1', '3', '5', '7', '9')
-        self.lexicon['maj7b9'] = ('1', '3', '5', '7', 'b9')
-        self.lexicon['9'] = ('1', '3', '5', 'b7', '9')
-        self.lexicon['7b9'] = ('1', '3', '5', 'b7', 'b9')
-        self.lexicon['maj9b5'] = ('1', '3', 'b5', '7', '9')
-        self.lexicon['maj7b5b9'] = ('1', '3', 'b5', '7', 'b9')
-        self.lexicon['9b5'] = ('1', '3', 'b5', 'b7', '9')
-        self.lexicon['7b5b9'] = ('1', '3', 'b5', 'b7', 'b9')
+        # add all nines
+        combinations += [seven + [ninth] for seven in combinations for ninth in gram[9] if len(seven) > 2]
 
-        # define minor ninths
-        self.lexicon['mmaj9'] = ('1', 'b3', '5', '7', '9')
-        self.lexicon['mmaj7b9'] = ('1', 'b3', '5', '7', 'b9')
-        self.lexicon['m9'] = ('1', 'b3', '5', 'b7', '9')
-        self.lexicon['m7b9'] = ('1', 'b3', '5', 'b7', 'b9')
-        self.lexicon['mmaj9b5'] = ('1', 'b3', 'b5', '7', '9')
-        self.lexicon['mmaj7b5b9'] = ('1', 'b3', 'b5', '7', 'b9')
-        self.lexicon['m9b5'] = ('1', 'b3', 'b5', 'b7', '9')
-        self.lexicon['m7b5b9'] = ('1', 'b3', 'b5', 'b7', 'b9')
+        # add all elevens
+        combinations += [nine + [eleventh] for nine in combinations for eleventh in gram[11] if len(nine) > 3]
 
-        # define major elevenths
-        self.lexicon['maj11'] = ('1', '3', '5', '7', '9', '11')
-        self.lexicon['maj11b9'] = ('1', '3', '5', '7', 'b9', '11')
-        self.lexicon['11'] = ('1', '3', '5', 'b7', '9', '11')
-        self.lexicon['11b9'] = ('1', '3', '5', 'b7', 'b9', '11')
-        self.lexicon['maj11b5'] = ('1', '3', 'b5', '7', '9', '11')
-        self.lexicon['maj11b5b9'] = ('1', '3', 'b5', '7', 'b9', '11')
-        self.lexicon['11b5'] = ('1', '3', 'b5', 'b7', '9', '11')
-        self.lexicon['11b5b9'] = ('1', '3', 'b5', 'b7', 'b9', '11')
+        # add all thirteens
+        combinations += [eleven + [thirteenth] for eleven in combinations for thirteenth in gram[13] if len(eleven) > 4]
 
-        # define minor elevenths
-        self.lexicon['mmaj11'] = ('1', 'b3', '5', '7', '9', '11')
-        self.lexicon['mmaj11b9'] = ('1', 'b3', '5', '7', 'b9', '11')
-        self.lexicon['m11'] = ('1', 'b3', '5', 'b7', '9', '11')
-        self.lexicon['m11b9'] = ('1', 'b3', '5', 'b7', 'b9', '11')
-        self.lexicon['mmaj11b5'] = ('1', 'b3', 'b5', '7', '9', '11')
-        self.lexicon['mmaj11b5b9'] = ('1', 'b3', 'b5', '7', 'b9', '11')
-        self.lexicon['m11b5'] = ('1', 'b3', 'b5', 'b7', '9', '11')
-        self.lexicon['m11b5b9'] = ('1', 'b3', 'b5', 'b7', 'b9', '11')
+        # create codex
+        codex = {tuple(combination): self._identify(*combination) for combination in combinations}
 
-        # define major thirteenths
-        self.lexicon['maj13'] = ('1', '3', '5', '7', '9', '11', '13')
-        self.lexicon['maj11b13'] = ('1', '3', '5', '7', '9', '11', 'b13')
-        self.lexicon['maj13b9'] = ('1', '3', '5', '7', 'b9', '11', '13')
-        self.lexicon['maj11b9b13'] = ('1', '3', '5', '7', 'b9', '11', 'b13')
-        self.lexicon['13'] = ('1', '3', '5', 'b7', '9', '11', '13')
-        self.lexicon['11b13'] = ('1', '3', '5', 'b7', '9', '11', 'b13')
-        self.lexicon['13b9'] = ('1', '3', '5', 'b7', 'b9', '11', '13')
-        self.lexicon['11b9b13'] = ('1', '3', '5', 'b7', 'b9', '11', 'b13')
-        self.lexicon['maj13b5'] = ('1', '3', 'b5', '7', '9', '11', '13')
-        self.lexicon['maj11b5b13'] = ('1', '3', 'b5', '7', '9', '11', 'b13')
-        self.lexicon['maj13b5b9'] = ('1', '3', 'b5', '7', 'b9', '11', '13')
-        self.lexicon['maj11b5b9b13'] = ('1', '3', 'b5', '7', 'b9', '11', 'b13')
-        self.lexicon['13b5'] = ('1', '3', 'b5', 'b7', '9', '11', '13')
-        self.lexicon['11b5b13'] = ('1', '3', 'b5', 'b7', '9', '11', 'b13')
-        self.lexicon['13b5b9'] = ('1', '3', 'b5', 'b7', 'b9', '11', '13')
-        self.lexicon['11b5b9b13'] = ('1', '3', 'b5', 'b7', 'b9', '11', 'b13')
+        # override particular combinations
+        codex[('b3', 'b5')] = 'dim'
+        codex[('3', '#5')] = 'aug'
 
-        # define minor thirteenths
-        self.lexicon['mmaj13'] = ('1', 'b3', '5', '7', '9', '11', '13')
-        self.lexicon['mmaj11b13'] = ('1', 'b3', '5', '7', '9', '11', 'b13')
-        self.lexicon['mmaj13b9'] = ('1', 'b3', '5', '7', 'b9', '11', '13')
-        self.lexicon['mmaj11b9b13'] = ('1', 'b3', '5', '7', 'b9', '11', 'b13')
-        self.lexicon['m13'] = ('1', 'b3', '5', 'b7', '9', '11', '13')
-        self.lexicon['m11b13'] = ('1', 'b3', '5', 'b7', '9', '11', 'b13')
-        self.lexicon['m13b9'] = ('1', 'b3', '5', 'b7', 'b9', '11', '13')
-        self.lexicon['m11b9b13'] = ('1', 'b3', '5', 'b7', 'b9', '11', 'b13')
-        self.lexicon['mmaj13b5'] = ('1', 'b3', 'b5', '7', '9', '11', '13')
-        self.lexicon['mmaj11b5b13'] = ('1', 'b3', 'b5', '7', '9', '11', 'b13')
-        self.lexicon['mmaj13b5b9'] = ('1', 'b3', 'b5', '7', 'b9', '11', '13')
-        self.lexicon['mmaj11b5b9b13'] = ('1', 'b3', 'b5', '7', 'b9', '11', 'b13')
-        self.lexicon['m13b5'] = ('1', 'b3', 'b5', 'b7', '9', '11', '13')
-        self.lexicon['m11b5b13'] = ('1', 'b3', 'b5', 'b7', '9', '11', 'b13')
-        self.lexicon['m13b5b9'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', '13')
-        self.lexicon['m11b5b9b13'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', 'b13')
+        # define lexicon
+        lexicon = {name: code for code, name in codex.items()}
+
+        # set attributes
+        self.codex = codex
+        self.lexicon = lexicon
 
         # define greek modes
-        self.scales['Lydian'] = ('3', '5', '7', '9', 'b5', '13')
-        self.scales['Ionian'] = ('3', '5', '7', '9', '11', '13')
-        self.scales['Mixolydian'] = ('3', '5', 'b7', '9', '11', '13')
-        self.scales['Dorian'] = ('b3', '5', 'b7', '9', '11', '13')
-        self.scales['Aeolian'] = ('b3', '5', 'b7', '9', '11', 'b13')
-        self.scales['Phrygian'] = ('b3', '5', 'b7', 'b9', '11', 'b13')
-        self.scales['Locrian'] = ('b3', 'b5', 'b7', 'b9', '11', 'b13')
+        scales = []
+        scales['Lydian'] = ('3', '5', '7', '9', 'b5', '13')
+        scales['Ionian'] = ('3', '5', '7', '9', '11', '13')
+        scales['Mixolydian'] = ('3', '5', 'b7', '9', '11', '13')
+        scales['Dorian'] = ('b3', '5', 'b7', '9', '11', '13')
+        scales['Aeolian'] = ('b3', '5', 'b7', '9', '11', 'b13')
+        scales['Phrygian'] = ('b3', '5', 'b7', 'b9', '11', 'b13')
+        scales['Locrian'] = ('b3', 'b5', 'b7', 'b9', '11', 'b13')
+
+        # set scales
+        self.scales = scales
 
         return None
 
