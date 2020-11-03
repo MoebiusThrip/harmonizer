@@ -2687,7 +2687,7 @@ class Harmonizer(object):
                     if self.wheel[root][pitch] == self.enharmonize(interval):
 
                         # annotate interval below note
-                        center = (note['center'][0], note['center'][1] + 50)
+                        center = (note['center'][0], self.measures[measure][0] + 40)
                         draw.text(center, str(interval), font=font, fill='black')
 
         # get top and bottom indices of stave
