@@ -3221,7 +3221,7 @@ class Harmonizer(object):
 
                         # check against interval
                         interval = self.wheel[root][pitch]
-                        if self.enharmonize(interval) == self.enharmonize(member):
+                        if self.enharmonize(interval) == self.enharmonize(member) and not analysis[degree]:
 
                             # add to slots
                             analysis[degree] = ('({})'.format(pitch), member)
