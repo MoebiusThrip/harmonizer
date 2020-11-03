@@ -3165,6 +3165,8 @@ class Harmonizer(object):
         analyses = []
         for root in pitches:
 
+            print(root)
+
             # create slots
             slots = {degree: None for degree in degrees}
 
@@ -3190,9 +3192,11 @@ class Harmonizer(object):
             # add analysis
             analyses.append(slots)
 
-        # sort by lowest non empty entry, and smallest emtry entry
+        # sort by fewest accidentals, lowest last non empty entry, and highest first empty entry
+        accidental = lambda interval: any([symbol in interval[1] for symbol in ('b', '#')])
+        analyses.sort(key=lambda slots: len([interval[1] for interval in slots.values() if interval and accidental(interval)]), reverse=True)
         analyses.sort(key=lambda slots: max([int(number) for number, info in slots.items() if info]), reverse=True)
-        analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info]))
+        analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info] or [13]))
 
         # print analysis
         self._depict(analyses)
