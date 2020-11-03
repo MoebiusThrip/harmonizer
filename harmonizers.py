@@ -142,6 +142,7 @@ class Harmonizer(object):
         self.scales = {}
         self.enharmonics = {}
         self.intervals = []
+        self.cladogram = []
 
         # annotation properties
         self.font = 'Arial Black'
@@ -353,6 +354,11 @@ class Harmonizer(object):
         self.intervals = intervals
         self.spectrum = spectrum
 
+        # define interval cladogram
+        cladogram = [(1, ['1']), (3, ['3', 'b3']), (5, ['5', 'b5', '#5']), (7, ['7', 'b7'])]
+        cladogram += [(9, ['9', 'b9', '#9']), (11, ['11', '#11']), (13, ['13', 'b13', '#13'])]
+        self.cladogram = cladogram
+
         # define wheel and inverse wheel
         indexing = lambda pitch, pitchii: (mirror[pitchii] - mirror[pitch]) % len(spectrum)
         self.wheel = {pitch: {pitchii: intervals[indexing(pitch, pitchii)] for pitchii in pitches} for pitch in pitches}
@@ -390,6 +396,43 @@ class Harmonizer(object):
 
         # set enharmonics
         self.enharmonics = {'flats': flats, 'sharps': sharps}
+
+        return None
+
+    def _depict(self, analyses, gap=5):
+        """Depict a chord based on filled slots.
+
+        Arguments:
+            analyses: list of dicts
+
+        Returns:
+            None
+        """
+
+        # make header
+        header = ''
+        for number in (1, 3, 5, 7, 9, 11, 13):
+
+            # add number
+            header += (str(number) + ' ' * gap)[:gap]
+
+        # print header
+        print(header)
+
+        # go through each analysis
+        for analysis in analyses:
+
+            # make string from slots
+            depiction = ''
+            numbers = [key for key in analysis]
+            numbers.sort(key=lambda number: int(number))
+            for number in numbers:
+
+                # add to depiction
+                depiction += ((analysis[number] or ('', ''))[0] + ' ' * gap)[:gap]
+
+            # print
+            print(depiction)
 
         return None
 
@@ -556,6 +599,49 @@ class Harmonizer(object):
             hexadecimal += digits[int(intensity / 16)] + digits[intensity % 16]
 
         return hexadecimal
+
+    def _identify(self, *intervals):
+        """Identify the chord based on the intervals.
+
+        Arguments:
+            *intervals: unpacked tuple of intervals
+
+        Returns:
+            str
+        """
+
+        # make dictionary of taxony functions
+        taxonomy = {'1': lambda chord, extension: (chord, extension)}
+        taxonomy.update({'3': lambda chord, extension: (chord + 'maj', extension)})
+        taxonomy.update({'b3': lambda chord, extension: (chord + 'm', extension)})
+        taxonomy.update({'5': lambda chord, extension: (chord, extension)})
+        taxonomy.update({'b5': lambda chord, extension: (chord, extension + 'b5')})
+        taxonomy.update({'#5': lambda chord, extension: (chord, extension + '#5')})
+        taxonomy.update({'7': lambda chord, extension: (chord.replace('maj', '') + 'maj7', extension)})
+        taxonomy.update({'b7': lambda chord, extension: (chord.replace('maj', '') + '7', extension)})
+        taxonomy.update({'9': lambda chord, extension: (chord.replace('7', '9'), extension)})
+        taxonomy.update({'b9': lambda chord, extension: (chord, extension + 'b9')})
+        taxonomy.update({'#9': lambda chord, extension: (chord, extension + '#9')})
+        taxonomy.update({'11': lambda chord, extension: (chord.replace('7', '11').replace('9', '11'), extension)})
+        taxonomy.update({'#11': lambda chord, extension: (chord, extension + '#11')})
+        taxonomy.update({'13': lambda chord, extension: (chord.replace('7', '13').replace('9', '13').replace('11', '13'), extension)})
+        taxonomy.update({'b13': lambda chord, extension: (chord, extension + 'b13')})
+        taxonomy.update({'#13': lambda chord, extension: (chord, extension + '#13')})
+
+        # begin chord and extension
+        chord = ''
+        extension = ''
+
+        # go through each interval
+        for interval in intervals:
+
+            # apply functions
+            chord, extension = taxonomy[interval](chord, extension)
+
+        # condense
+        identity = chord + extension
+
+        return identity
 
     def _ingest(self):
         """Ingest the source material, training data conversations.
@@ -984,121 +1070,108 @@ class Harmonizer(object):
             self.lexicon
         """
 
-        # define major chords
-        self.lexicon['maj'] = ['3', '5']
-        self.lexicon['maj7'] = ['3', '5', '7']
-        self.lexicon['maj9'] = ['3', '5', '7', '9']
-        self.lexicon['maj11'] = ['3', '5', '7', '9', '11']
-        self.lexicon['maj13'] = ['3', '5', '7', '9', '11', '13']
+        # define triplets
+        self.lexicon['maj'] = ('1', '3', '5')
+        self.lexicon['majb5'] = ('1', '3', 'b5')
+        self.lexicon['m'] = ('1', 'b3', '5')
+        self.lexicon['dim'] = ('1', 'b3', 'b5')
 
-        # define altered majors
-        self.lexicon['maj7b5'] = ['3', 'b5', '7']
-        # self.lexicon['maj7#5'] = ['3', 'b13', '7']
-        self.lexicon['maj7b9'] = ['3', '5', '7', 'b9']
-        # self.lexicon['maj7#9'] = ['3', '5', '7', 'b3']
-        self.lexicon['maj9b5'] = ['3', 'b5', '7', '9']
-        # self.lexicon['maj9#5'] = ['3', 'b13', '7', '9']
-        self.lexicon['maj7b5b9'] = ['3', 'b5', '7', 'b9']
-        # self.lexicon['maj7#5b9'] = ['3', 'b13', '7', 'b9']
-        # self.lexicon['maj7b5#9'] = ['3', 'b5', '7', 'b3']
-        # self.lexicon['maj7#5#9'] = ['3', 'b13', '7', 'b3']
+        # define major sevenths
+        self.lexicon['maj7'] = ('1', '3', '5', '7')
+        self.lexicon['7'] = ('1', '3', '5', 'b7')
+        self.lexicon['maj7b5'] = ('1', '3', 'b5', '7')
+        self.lexicon['7b5'] = ('1', '3', 'b5', 'b7')
 
-        # define altered major elevenths
-        self.lexicon['maj11b5'] = ['3', 'b5', '7', '9', '11']
-        # self.lexicon['maj11#5'] = ['3', 'b13', '7', '9', '11']
-        self.lexicon['maj11b9'] = ['3', '5', '7', 'b9', '11']
-        # self.lexicon['maj11#9'] = ['3', '5', '7', 'b3', '11']
-        self.lexicon['maj11b5'] = ['3', 'b5', '7', '9', '11']
-        # self.lexicon['maj11#5'] = ['3', 'b13', '7', '9', '11']
-        self.lexicon['maj11b5b9'] = ['3', 'b5', '7', 'b9', '11']
-        # self.lexicon['maj11#5b9'] = ['3', 'b13', '7', 'b9', '11']
-        # self.lexicon['maj11b5#9'] = ['3', 'b5', '7', 'b3', '11']
-        # self.lexicon['maj11#5#9'] = ['3', 'b13', '7', 'b3', '11']
+        # define minor sevenths
+        self.lexicon['mmaj7'] = ('1', 'b3', '5', '7')
+        self.lexicon['m7'] = ('1', 'b3', '5', 'b7')
+        self.lexicon['mmaj7b5'] = ('1', 'b3', 'b5', '7')
+        self.lexicon['m7b5'] = ('1', 'b3', 'b5', 'b7')
 
-        # define major thirteenths
-        self.lexicon['maj13#11'] = ['3', '5', '7', '9', 'b5', '13']
+        # define major ninths
+        self.lexicon['maj9'] = ('1', '3', '5', '7', '9')
+        self.lexicon['maj7b9'] = ('1', '3', '5', '7', 'b9')
+        self.lexicon['9'] = ('1', '3', '5', 'b7', '9')
+        self.lexicon['7b9'] = ('1', '3', '5', 'b7', 'b9')
+        self.lexicon['maj9b5'] = ('1', '3', 'b5', '7', '9')
+        self.lexicon['maj7b5b9'] = ('1', '3', 'b5', '7', 'b9')
+        self.lexicon['9b5'] = ('1', '3', 'b5', 'b7', '9')
+        self.lexicon['7b5b9'] = ('1', '3', 'b5', 'b7', 'b9')
 
-        # define minor chords
-        self.lexicon['m'] = ['b3', '5']
-        self.lexicon['m7'] = ['b3', '5', 'b7']
-        self.lexicon['m9'] = ['b3', '5', 'b7', '9']
-        self.lexicon['m11'] = ['b3', '5', 'b7', '9', '11']
-        self.lexicon['m13'] = ['b3', '5', 'b7', '9', '11', '13']
+        # define minor ninths
+        self.lexicon['mmaj9'] = ('1', 'b3', '5', '7', '9')
+        self.lexicon['mmaj7b9'] = ('1', 'b3', '5', '7', 'b9')
+        self.lexicon['m9'] = ('1', 'b3', '5', 'b7', '9')
+        self.lexicon['m7b9'] = ('1', 'b3', '5', 'b7', 'b9')
+        self.lexicon['mmaj9b5'] = ('1', 'b3', 'b5', '7', '9')
+        self.lexicon['mmaj7b5b9'] = ('1', 'b3', 'b5', '7', 'b9')
+        self.lexicon['m9b5'] = ('1', 'b3', 'b5', 'b7', '9')
+        self.lexicon['m7b5b9'] = ('1', 'b3', 'b5', 'b7', 'b9')
 
-        # define altered minors
-        self.lexicon['m7b5'] = ['b3', 'b5', 'b7']
-        # self.lexicon['m7#5'] = ['b3', 'b13', 'b7']
-        self.lexicon['m7b9'] = ['b3', '5', 'b7', 'b9']
-        # self.lexicon['m7#9'] = ['b3', '5', 'b7', 'b3']
-        self.lexicon['m9b5'] = ['b3', 'b5', 'b7', '9']
-        # self.lexicon['m9#5'] = ['b3', 'b13', 'b7', '9']
-        self.lexicon['m7b5b9'] = ['b3', 'b5', 'b7', 'b9']
-        # self.lexicon['m7#5b9'] = ['b3', 'b13', 'b7', 'b9']
-        # self.lexicon['m7b5#9'] = ['b3', 'b5', 'b7', 'b3']
-        # self.lexicon['m7#5#9'] = ['b3', 'b13', 'b7', 'b3']
+        # define major elevenths
+        self.lexicon['maj11'] = ('1', '3', '5', '7', '9', '11')
+        self.lexicon['maj11b9'] = ('1', '3', '5', '7', 'b9', '11')
+        self.lexicon['11'] = ('1', '3', '5', 'b7', '9', '11')
+        self.lexicon['11b9'] = ('1', '3', '5', 'b7', 'b9', '11')
+        self.lexicon['maj11b5'] = ('1', '3', 'b5', '7', '9', '11')
+        self.lexicon['maj11b5b9'] = ('1', '3', 'b5', '7', 'b9', '11')
+        self.lexicon['11b5'] = ('1', '3', 'b5', 'b7', '9', '11')
+        self.lexicon['11b5b9'] = ('1', '3', 'b5', 'b7', 'b9', '11')
 
-        # define altered minor elevenths
-        self.lexicon['m11b5'] = ['b3', 'b5', 'b7', '9', '11']
-        # self.lexicon['m11#5'] = ['b3', 'b13', 'b7', '9', '11']
-        self.lexicon['m11b9'] = ['b3', '5', 'b7', 'b9', '11']
-        # self.lexicon['m11#9'] = ['b3', '5', 'b7', 'b3', '11']
-        self.lexicon['m11b5'] = ['b3', 'b5', 'b7', '9', '11']
-        # self.lexicon['m11#5'] = ['b3', 'b13', 'b7', '9', '11']
-        self.lexicon['m11b5b9'] = ['b3', 'b5', 'b7', 'b9', '11']
-        # self.lexicon['m11#5b9'] = ['b3', 'b13', 'b7', 'b9', '11']
-        # self.lexicon['m11b5#9'] = ['b3', 'b5', 'b7', 'b3', '11']
-        # self.lexicon['m11#5#9'] = ['b3', 'b13', 'b7', 'b3', '11']
+        # define minor elevenths
+        self.lexicon['mmaj11'] = ('1', 'b3', '5', '7', '9', '11')
+        self.lexicon['mmaj11b9'] = ('1', 'b3', '5', '7', 'b9', '11')
+        self.lexicon['m11'] = ('1', 'b3', '5', 'b7', '9', '11')
+        self.lexicon['m11b9'] = ('1', 'b3', '5', 'b7', 'b9', '11')
+        self.lexicon['mmaj11b5'] = ('1', 'b3', 'b5', '7', '9', '11')
+        self.lexicon['mmaj11b5b9'] = ('1', 'b3', 'b5', '7', 'b9', '11')
+        self.lexicon['m11b5'] = ('1', 'b3', 'b5', 'b7', '9', '11')
+        self.lexicon['m11b5b9'] = ('1', 'b3', 'b5', 'b7', 'b9', '11')
 
         # define major thirteenths
-        self.lexicon['m13#11'] = ['b3', '5', 'b7', '9', 'b5', '13']
+        self.lexicon['maj13'] = ('1', '3', '5', '7', '9', '11', '13')
+        self.lexicon['maj11b13'] = ('1', '3', '5', '7', '9', '11', 'b13')
+        self.lexicon['maj13b9'] = ('1', '3', '5', '7', 'b9', '11', '13')
+        self.lexicon['maj11b9b13'] = ('1', '3', '5', '7', 'b9', '11', 'b13')
+        self.lexicon['13'] = ('1', '3', '5', 'b7', '9', '11', '13')
+        self.lexicon['11b13'] = ('1', '3', '5', 'b7', '9', '11', 'b13')
+        self.lexicon['13b9'] = ('1', '3', '5', 'b7', 'b9', '11', '13')
+        self.lexicon['11b9b13'] = ('1', '3', '5', 'b7', 'b9', '11', 'b13')
+        self.lexicon['maj13b5'] = ('1', '3', 'b5', '7', '9', '11', '13')
+        self.lexicon['maj11b5b13'] = ('1', '3', 'b5', '7', '9', '11', 'b13')
+        self.lexicon['maj13b5b9'] = ('1', '3', 'b5', '7', 'b9', '11', '13')
+        self.lexicon['maj11b5b9b13'] = ('1', '3', 'b5', '7', 'b9', '11', 'b13')
+        self.lexicon['13b5'] = ('1', '3', 'b5', 'b7', '9', '11', '13')
+        self.lexicon['11b5b13'] = ('1', '3', 'b5', 'b7', '9', '11', 'b13')
+        self.lexicon['13b5b9'] = ('1', '3', 'b5', 'b7', 'b9', '11', '13')
+        self.lexicon['11b5b9b13'] = ('1', '3', 'b5', 'b7', 'b9', '11', 'b13')
 
-        # define dominant chords
-        self.lexicon['7'] = ['3', '5', 'b7']
-        self.lexicon['9'] = ['3', '5', 'b7', '9']
-        self.lexicon['11'] = ['3', '5', 'b7', '9', '11']
-        self.lexicon['13'] = ['3', '5', 'b7', '9', '11', '13']
-
-        # define altered dominants
-        self.lexicon['7b5'] = ['3', 'b5', 'b7']
-        # self.lexicon['7#5'] = ['3', 'b13', 'b7']
-        self.lexicon['7b9'] = ['3', '5', 'b7', 'b9']
-        # self.lexicon['7#9'] = ['3', '5', 'b7', 'b3']
-        self.lexicon['9b5'] = ['3', 'b5', 'b7', '9']
-        # self.lexicon['9#5'] = ['3', 'b13', 'b7', '9']
-        self.lexicon['7b5b9'] = ['3', 'b5', 'b7', 'b9']
-        # self.lexicon['7#5b9'] = ['3', 'b13', 'b7', 'b9']
-        # self.lexicon['7b5#9'] = ['3', 'b5', 'b7', 'b3']
-        # self.lexicon['7#5#9'] = ['3', 'b13', 'b7', 'b3']
-
-        # define altered dominant elevenths
-        self.lexicon['11b5'] = ['3', 'b5', 'b7', '9', '11']
-        # self.lexicon['11#5'] = ['3', 'b13', 'b7', '9', '11']
-        self.lexicon['11b9'] = ['3', '5', 'b7', 'b9', '11']
-        # self.lexicon['11#9'] = ['3', '5', 'b7', 'b3', '11']
-        self.lexicon['11b5'] = ['3', 'b5', 'b7', '9', '11']
-        # self.lexicon['11#5'] = ['3', 'b13', 'b7', '9', '11']
-        self.lexicon['11b5b9'] = ['3', 'b5', 'b7', 'b9', '11']
-        # self.lexicon['11#5b9'] = ['3', 'b13', 'b7', 'b9', '11']
-        # self.lexicon['11b5#9'] = ['3', 'b5', 'b7', 'b3', '11']
-        # self.lexicon['11#5#9'] = ['3', 'b13', 'b7', 'b3', '11']
-
-        # define major thirteenths
-        self.lexicon['13#11'] = ['3', '5', 'b7', '9', 'b5', '13']
-
-        # define other chords
-        self.lexicon['dim'] = ['b3', 'b5']
-        self.lexicon['aug'] = ['3', 'b13']
-        self.lexicon['m7b5'] = ['b3', 'b5', 'b7']
-        self.lexicon['mmaj7'] = ['b3', '5', '7']
+        # define minor thirteenths
+        self.lexicon['mmaj13'] = ('1', 'b3', '5', '7', '9', '11', '13')
+        self.lexicon['mmaj11b13'] = ('1', 'b3', '5', '7', '9', '11', 'b13')
+        self.lexicon['mmaj13b9'] = ('1', 'b3', '5', '7', 'b9', '11', '13')
+        self.lexicon['mmaj11b9b13'] = ('1', 'b3', '5', '7', 'b9', '11', 'b13')
+        self.lexicon['m13'] = ('1', 'b3', '5', 'b7', '9', '11', '13')
+        self.lexicon['m11b13'] = ('1', 'b3', '5', 'b7', '9', '11', 'b13')
+        self.lexicon['m13b9'] = ('1', 'b3', '5', 'b7', 'b9', '11', '13')
+        self.lexicon['m11b9b13'] = ('1', 'b3', '5', 'b7', 'b9', '11', 'b13')
+        self.lexicon['mmaj13b5'] = ('1', 'b3', 'b5', '7', '9', '11', '13')
+        self.lexicon['mmaj11b5b13'] = ('1', 'b3', 'b5', '7', '9', '11', 'b13')
+        self.lexicon['mmaj13b5b9'] = ('1', 'b3', 'b5', '7', 'b9', '11', '13')
+        self.lexicon['mmaj11b5b9b13'] = ('1', 'b3', 'b5', '7', 'b9', '11', 'b13')
+        self.lexicon['m13b5'] = ('1', 'b3', 'b5', 'b7', '9', '11', '13')
+        self.lexicon['m11b5b13'] = ('1', 'b3', 'b5', 'b7', '9', '11', 'b13')
+        self.lexicon['m13b5b9'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', '13')
+        self.lexicon['m11b5b9b13'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', 'b13')
 
         # define greek modes
-        self.scales['Lydian'] = ['3', '5', '7', '9', 'b5', '13']
-        self.scales['Ionian'] = ['3', '5', '7', '9', '11', '13']
-        self.scales['Mixolydian'] = ['3', '5', 'b7', '9', '11', '13']
-        self.scales['Dorian'] = ['b3', '5', 'b7', '9', '11', '13']
-        self.scales['Aeolian'] = ['b3', '5', 'b7', '9', '11', 'b13']
-        self.scales['Phrygian'] = ['b3', '5', 'b7', 'b9', '11', 'b13']
-        self.scales['Locrian'] = ['b3', 'b5', 'b7', 'b9', '11', 'b13']
+        self.scales['Lydian'] = ('3', '5', '7', '9', 'b5', '13')
+        self.scales['Ionian'] = ('3', '5', '7', '9', '11', '13')
+        self.scales['Mixolydian'] = ('3', '5', 'b7', '9', '11', '13')
+        self.scales['Dorian'] = ('b3', '5', 'b7', '9', '11', '13')
+        self.scales['Aeolian'] = ('b3', '5', 'b7', '9', '11', 'b13')
+        self.scales['Phrygian'] = ('b3', '5', 'b7', 'b9', '11', 'b13')
+        self.scales['Locrian'] = ('b3', 'b5', 'b7', 'b9', '11', 'b13')
 
         return None
 
@@ -3113,7 +3186,7 @@ class Harmonizer(object):
         """
 
         # get enharmonic pitches
-        pitches = [self.enharmonize(pitch) for pitch in pitches]
+        pitches = list(set([self.enharmonize(pitch) for pitch in pitches]))
 
         # find signature pitches not represented
         signature = self.signatures[self.signature]
@@ -3124,56 +3197,78 @@ class Harmonizer(object):
         print('pitches: {} + ({})'.format(list(pitches), signature))
 
         # use each pitch as a root
-        scores = []
+        analyses = []
         for root in pitches:
+
+            # create slots
+            slots = {degree: None for degree in ('1', '3', '5', '7', '9', '11', '13')}
 
             # get all intervals
             harmony = [pitch for pitch in pitches if pitch != root]
+            harmony = list(set(harmony))
             intervals = [self.wheel[root][pitch] for pitch in harmony]
-            fixations = [int(self._fix(interval)) for interval in intervals]
+            fixations = [self._fix(interval) for interval in intervals]
 
-            # get all implied intervals lower than the highest pitch but at least until the fifth
-            maximum = max([7, max(fixations or [7])])
-            implications = [self.wheel[root][pitch] for pitch in signature]
-            implications = [interval for interval in implications if int(self._fix(interval)) < maximum]
+            # fill in slots:
+            slots['1'] = (root, '1')
+            for pitch, interval, fixation in zip(harmony, intervals, fixations):
 
-            # compute scores for each chord in the lexicon
-            for chord, structure in self.lexicon.items():
+                # check for empty slot
+                if not slots[fixation]:
 
-                # start score and compare intervals
-                score = 0
-                penalty = 0.5
-                for interval in structure:
+                    # fill it
+                    slots[fixation] = (pitch, interval)
 
-                    # check for match
-                    if interval in intervals:
+            # print slots
+            analyses.append(slots)
 
-                        # add to score by the inverse of the interval
-                        score += 1 / float(int(self._fix(interval)) + penalty * int('b' in interval))
+        # sort by lowest non empty entry, and smallest emtry entry
+        analyses.sort(key=lambda slots: max([int(number) for number, info in slots.items() if info]))
+        analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info]), reverse=True)
 
-                    # check against implications
-                    if interval in implications:
+        # print analysis
+        self._depict(analyses)
 
-                        # add some portion to the score
-                        weight = 100
-                        score += 1 / (weight * float(int(self._fix(interval)) + penalty * int('b' in interval)))
+        # get top depiction
+        analysis = analyses[0]
+        root = analysis['1'][0]
 
-                # add score
-                scores.append((root + chord, score, structure))
+        # fill in missing intervals
+        maximum = max([5, max([int(number) for number, info in analysis.items() if info])])
 
-        # sort scores and annotate
-        scores.sort(key=lambda triplet: len(triplet[2]))
-        scores.sort(key=lambda triplet: triplet[1], reverse=True)
+        # go through signatures
+        for pitch in signature:
 
-        # print
-        [print(score) for score in scores[:7]]
+            # get scale degree
+            interval = self.wheel[root][pitch]
+            degree = self._fix(interval)
+            if int(degree) <= maximum and not analysis[degree]:
 
-        # return chord
+                # add pitch
+                analysis[degree] = ('({})'.format(pitch), '({})'.format(interval))
+
+        # depict again
+        print(' ')
+        self._depict([analysis])
+
+        # collect intervals
+        intervals = [info[1].replace('(', '').replace(')', '') for info in analysis.values() if info]
+        intervals.sort(key=lambda interval: int(self._fix(interval)))
+        intervals = tuple(intervals)
+        print(intervals)
+
+        # make lexicon mirror
+        mirror = {harmony: chord for chord, harmony in self.lexicon.items()}
+
+        # get chord from tuple
         chord = ''
-        if len(scores) > 0:
+        if intervals in mirror.keys():
 
-            # get top choice
-            chord = scores[0][0]
+            # set chord
+            chord = root + mirror[intervals]
+
+        # print chord
+        print(chord)
 
         return chord
 
@@ -3378,6 +3473,9 @@ harmo.load()
 
 # recover
 harmo.recover()
+
+# test theorize
+# harmo.theorize(*harmo.hum(10))
 
 # corrections
 # harmo.correct(40, 1, '', 2, '', 3, '', 4, '', 5, '', 6, '', 7, '')
