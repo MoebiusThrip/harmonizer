@@ -3175,15 +3175,13 @@ class Harmonizer(object):
                 # get species
                 for member in self.cladogram[degree]:
 
-                    print(member)
-
                     # go through pitches
                     remainder = [pitch for pitch in pitches if pitch not in slotted]
                     for pitch in remainder:
 
                         # check against interval
                         interval = self.wheel[root][pitch]
-                        if self.enharmonize(interval) == self.enharmonize(member):
+                        if self.enharmonize(interval) == self.enharmonize(member) and not slots[degree]:
 
                             # add to slots
                             slots[degree] = (pitch, member)
