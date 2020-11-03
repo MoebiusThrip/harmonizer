@@ -3175,6 +3175,8 @@ class Harmonizer(object):
                 # get species
                 for member in self.cladogram[degree]:
 
+                    print(member)
+
                     # go through pitches
                     remainder = [pitch for pitch in pitches if pitch not in slotted]
                     for pitch in remainder:
@@ -3242,6 +3244,7 @@ class Harmonizer(object):
 
             # set chord
             chord = root + self.codex[intervals]
+            print(chord)
 
         return chord
 
