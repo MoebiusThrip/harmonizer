@@ -2674,6 +2674,22 @@ class Harmonizer(object):
             center = (note['center'][0], note['center'][1] - 50)
             draw.text(center, str(index), font=font, fill='black')
 
+            # add intervals below notes
+            if self.chords[measure]:
+
+                # get chord intervals
+                root, harmony = self._peel(self.chords[measure])
+                intervals = self.lexicon[harmony]
+                pitch = note['pitch']
+                for interval in intervals:
+
+                    # check pitch
+                    if self.wheel[root][pitch] == self.enharmonize(interval):
+
+                        # annotate interval below note
+                        center = (note['center'][0], note['center'][1] + 50)
+                        draw.text(center, str(interval), font=font, fill='black')
+
         # get top and bottom indices of stave
         top = self.measures[measure][self.positions[1] - 1]
         bottom = self.measures[measure][self.positions[0]]
@@ -3145,6 +3161,9 @@ class Harmonizer(object):
             string
         """
 
+        # default chord to empty
+        chord = ''
+
         # get enharmonic pitches
         pitches = list(set([self.enharmonize(pitch) for pitch in pitches]))
 
@@ -3201,52 +3220,56 @@ class Harmonizer(object):
         # print analysis
         self._depict(analyses)
 
-        # get best fit
-        analysis = analyses[-1]
-        root = analysis[1][0]
+        # if there are analyses available
+        if len(analyses) > 0:
 
-        # fill in missing intervals
-        maximum = max([5, max([number for number, info in analysis.items() if info])])
-        degrees = [degree for degree in degrees if degree <= maximum]
+            # get best fit
+            analysis = analyses[-1]
+            root = analysis[1][0]
 
-        # go through remaining degree
-        slotted = []
-        for degree in degrees:
+            # fill in missing intervals
+            maximum = max([5, max([number for number, info in analysis.items() if info])])
+            degrees = [degree for degree in degrees if degree <= maximum]
 
-            # check for already filled
-            if not analysis[degree]:
+            # go through remaining degree
+            slotted = []
+            for degree in degrees:
 
-                # get species
-                for member in self.cladogram[degree]:
+                # check for already filled
+                if not analysis[degree]:
 
-                    # go through pitches
-                    remainder = [pitch for pitch in signature if pitch not in slotted]
-                    for pitch in remainder:
+                    # get species
+                    for member in self.cladogram[degree]:
 
-                        # check against interval
-                        interval = self.wheel[root][pitch]
-                        if self.enharmonize(interval) == self.enharmonize(member) and not analysis[degree]:
+                        # go through pitches
+                        remainder = [pitch for pitch in signature if pitch not in slotted]
+                        for pitch in remainder:
 
-                            # add to slots
-                            analysis[degree] = ('({})'.format(pitch), member)
-                            slotted.append(pitch)
+                            # check against interval
+                            interval = self.wheel[root][pitch]
+                            if self.enharmonize(interval) == self.enharmonize(member) and not analysis[degree]:
 
-        # get new columns
-        columns = [info[1] for degree, info in analysis.items() if info]
-        columns.sort(key=lambda interval: int(self._fix(interval)))
-        intervals = tuple(columns)
+                                # add to slots
+                                analysis[degree] = ('({})'.format(pitch), member)
+                                slotted.append(pitch)
 
-        # depict again
-        print(' ')
-        self._depict([analysis], columns=columns)
+            # get new columns
+            columns = [info[1] for degree, info in analysis.items() if info]
+            columns.sort(key=lambda interval: int(self._fix(interval)))
+            intervals = tuple(columns)
 
-        # get chord from tuple
-        chord = ''
-        if intervals in self.codex.keys():
+            # depict again
+            print(' ')
+            self._depict([analysis], columns=columns)
 
-            # set chord
-            chord = root + self.codex[intervals]
-            print(chord)
+            # get chord from tuple
+            if intervals in self.codex.keys():
+
+                # set chord
+                chord = root + self.codex[intervals]
+
+        # print chord
+        print(chord)
 
         return chord
 
