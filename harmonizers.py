@@ -356,8 +356,8 @@ class Harmonizer(object):
         self.spectrum = spectrum
 
         # define interval cladogram
-        cladogram = [(1, ['1']), (3, ['3', 'b3']), (5, ['5', 'b5', '#5']), (7, ['7', 'b7'])]
-        cladogram += [(9, ['9', 'b9', '#9']), (11, ['11', '#11']), (13, ['13', 'b13', '#13'])]
+        cladogram = {1: ['1'], 3: ['3', 'b3'], 5: ['5', 'b5', '#5'], 7: ['7', 'b7']}
+        cladogram.update({9: ['9', 'b9', '#9'], 11: ['11', '#11'], 13: ['13', 'b13', '#13']})
         self.cladogram = cladogram
 
         # define wheel and inverse wheel
@@ -383,39 +383,54 @@ class Harmonizer(object):
         self.signatures['Db'] = ['Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C']
         self.signatures['Gb'] = ['Gb', 'Ab', 'Bb', 'Cb', 'Db', 'Eb', 'F']
 
+        # define interval enharmonics
+        intervals = ['1', '3', 'b3', '5', 'b5', '#5', '7', 'b7', '9', 'b9', '#9', '11', '#11', '13', 'b13', '#13']
+        equivalents = ['1', '3', 'b3', '5', 'b5', 'b13', '7', 'b7', '9', 'b9', 'b3', '11', 'b5', '13', 'b13', 'b7']
+        numbers = {interval: equivalent for interval, equivalent in zip(intervals, equivalents)}
+
         # define flat enharmonics
         flats = {note: note for note in notes}
         flats.update({note: note for note in ('Db', 'Eb', 'Gb', 'Ab', 'Bb')})
         flats.update({pair.split()[0]: pair.split()[1] for pair in ['C# Db', 'D# Eb', 'F# Gb', 'G# Ab', 'A# Bb']})
         flats.update({pair.split()[0]: pair.split()[1] for pair in ['E# F', 'B# C']})
+        flats.update(numbers)
 
         # define sharp enharmonics
         sharps = {note: note for note in notes}
         sharps.update({note: note for note in ('C#', 'D#', 'F#', 'G#', 'A#')})
         sharps.update({pair.split()[0]: pair.split()[1] for pair in ['Db C#', 'Eb D#', 'Gb F#', 'Ab G#', 'Bb A#']})
         sharps.update({pair.split()[0]: pair.split()[1] for pair in ['Fb E', 'Cb B']})
+        sharps.update(numbers)
 
         # set enharmonics
         self.enharmonics = {'flats': flats, 'sharps': sharps}
 
         return None
 
-    def _depict(self, analyses, gap=5):
+    def _depict(self, analyses, columns=None, gap=5):
         """Depict a chord based on filled slots.
 
         Arguments:
             analyses: list of dicts
+            columns=None: list of strings
+            gap=5: int, spacing
 
         Returns:
             None
         """
 
-        # make header
-        header = ''
-        for number in (1, 3, 5, 7, 9, 11, 13):
+        # make default columns
+        if not columns:
 
-            # add number
-            header += (str(number) + ' ' * gap)[:gap]
+            # make default header
+            columns = ['1', '3', '5', '7', '9', '11', '13']
+
+        # print header
+        header = ''
+        for column in columns:
+
+            # add column
+            header += (str(column) + ' ' * gap)[:gap]
 
         # print header
         print(header)
@@ -1074,10 +1089,10 @@ class Harmonizer(object):
         """
 
         # get cladogram
-        gram = dict(self.cladogram)
+        gram = self.cladogram
 
         # generate all triads
-        combinations = [[third, fifth] for third in gram[3] for fifth in gram[5]]
+        combinations = [['1', third, fifth] for third in gram[3] for fifth in gram[5]]
 
         # add all sevens
         combinations += [triad + [seventh] for triad in combinations for seventh in gram[7]]
@@ -1106,14 +1121,14 @@ class Harmonizer(object):
         self.lexicon = lexicon
 
         # define greek modes
-        scales = []
-        scales['Lydian'] = ('3', '5', '7', '9', 'b5', '13')
-        scales['Ionian'] = ('3', '5', '7', '9', '11', '13')
-        scales['Mixolydian'] = ('3', '5', 'b7', '9', '11', '13')
-        scales['Dorian'] = ('b3', '5', 'b7', '9', '11', '13')
-        scales['Aeolian'] = ('b3', '5', 'b7', '9', '11', 'b13')
-        scales['Phrygian'] = ('b3', '5', 'b7', 'b9', '11', 'b13')
-        scales['Locrian'] = ('b3', 'b5', 'b7', 'b9', '11', 'b13')
+        scales = {}
+        scales['Lydian'] = ('1', '3', '5', '7', '9', 'b5', '13')
+        scales['Ionian'] = ('1', '3', '5', '7', '9', '11', '13')
+        scales['Mixolydian'] = ('1', '3', '5', 'b7', '9', '11', '13')
+        scales['Dorian'] = ('1', 'b3', '5', 'b7', '9', '11', '13')
+        scales['Aeolian'] = ('1', 'b3', '5', 'b7', '9', '11', 'b13')
+        scales['Phrygian'] = ('1', 'b3', '5', 'b7', 'b9', '11', 'b13')
+        scales['Locrian'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', 'b13')
 
         # set scales
         self.scales = scales
@@ -3127,7 +3142,7 @@ class Harmonizer(object):
             *pitches: unpacked tuple of strings
 
         Returns:
-            list of tuples
+            string
         """
 
         # get enharmonic pitches
@@ -3135,85 +3150,98 @@ class Harmonizer(object):
 
         # find signature pitches not represented
         signature = self.signatures[self.signature]
-        notes = [self._fix(pitch) for pitch in pitches]
-        signature = [member for member in signature if self._fix(member) not in notes]
+        signature = [member for member in signature if member not in pitches]
 
         # print
         print('pitches: {} + ({})'.format(list(pitches), signature))
+
+        # get cladgram
+        cladogram = self.cladogram
+
+        # set degrees
+        degrees = [1, 3, 5, 7, 9, 11, 13]
 
         # use each pitch as a root
         analyses = []
         for root in pitches:
 
             # create slots
-            slots = {degree: None for degree in ('1', '3', '5', '7', '9', '11', '13')}
+            slots = {degree: None for degree in degrees}
 
-            # get all intervals
-            harmony = [pitch for pitch in pitches if pitch != root]
-            harmony = list(set(harmony))
-            intervals = [self.wheel[root][pitch] for pitch in harmony]
-            fixations = [self._fix(interval) for interval in intervals]
+            # go through each scale degree
+            slotted = []
+            for degree in degrees:
 
-            # fill in slots:
-            slots['1'] = (root, '1')
-            for pitch, interval, fixation in zip(harmony, intervals, fixations):
+                # get species
+                for member in self.cladogram[degree]:
 
-                # check for empty slot
-                if not slots[fixation]:
+                    # go through pitches
+                    remainder = [pitch for pitch in pitches if pitch not in slotted]
+                    for pitch in remainder:
 
-                    # fill it
-                    slots[fixation] = (pitch, interval)
+                        # check against interval
+                        interval = self.wheel[root][pitch]
+                        if self.enharmonize(interval) == self.enharmonize(member):
 
-            # print slots
+                            # add to slots
+                            slots[degree] = (pitch, member)
+                            slotted.append(pitch)
+
+            # add analysis
             analyses.append(slots)
 
         # sort by lowest non empty entry, and smallest emtry entry
-        analyses.sort(key=lambda slots: max([int(number) for number, info in slots.items() if info]))
-        analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info]), reverse=True)
+        analyses.sort(key=lambda slots: max([int(number) for number, info in slots.items() if info]), reverse=True)
+        analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info]))
 
         # print analysis
         self._depict(analyses)
 
-        # get top depiction
-        analysis = analyses[0]
-        root = analysis['1'][0]
+        # get best fit
+        analysis = analyses[-1]
+        root = analysis[1][0]
 
         # fill in missing intervals
-        maximum = max([5, max([int(number) for number, info in analysis.items() if info])])
+        maximum = max([5, max([number for number, info in analysis.items() if info])])
+        degrees = [degree for degree in degrees if degree <= maximum]
 
-        # go through signatures
-        for pitch in signature:
+        # go through remaining degree
+        slotted = []
+        for degree in degrees:
 
-            # get scale degree
-            interval = self.wheel[root][pitch]
-            degree = self._fix(interval)
-            if int(degree) <= maximum and not analysis[degree]:
+            # check for already filled
+            if not analysis[degree]:
 
-                # add pitch
-                analysis[degree] = ('({})'.format(pitch), '({})'.format(interval))
+                # get species
+                for member in self.cladogram[degree]:
+
+                    # go through pitches
+                    remainder = [pitch for pitch in signature if pitch not in slotted]
+                    for pitch in remainder:
+
+                        # check against interval
+                        interval = self.wheel[root][pitch]
+                        if self.enharmonize(interval) == self.enharmonize(member):
+
+                            # add to slots
+                            analysis[degree] = ('({})'.format(pitch), member)
+                            slotted.append(pitch)
+
+        # get new columns
+        columns = [info[1] for degree, info in analysis.items() if info]
+        columns.sort(key=lambda interval: int(self._fix(interval)))
+        intervals = tuple(columns)
 
         # depict again
         print(' ')
-        self._depict([analysis])
-
-        # collect intervals
-        intervals = [info[1].replace('(', '').replace(')', '') for info in analysis.values() if info]
-        intervals.sort(key=lambda interval: int(self._fix(interval)))
-        intervals = tuple(intervals)
-        print(intervals)
-
-        # make lexicon mirror
-        mirror = {harmony: chord for chord, harmony in self.lexicon.items()}
+        self._depict([analysis], columns=columns)
 
         # get chord from tuple
         chord = ''
-        if intervals in mirror.keys():
+        if intervals in self.codex.keys():
 
             # set chord
-            chord = root + mirror[intervals]
-
-        # print chord
-        print(chord)
+            chord = root + self.codex[intervals]
 
         return chord
 
