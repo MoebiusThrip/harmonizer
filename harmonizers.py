@@ -3386,10 +3386,10 @@ harmo.recover()
 # harmo.conquer(40)
 
 
-# view
-harmo.harmonize()
-harmo.paint(0, 168)
-harmo.publish()
+# # view
+# harmo.harmonize()
+# harmo.paint(0, 168)
+# harmo.publish()
 
 
 
