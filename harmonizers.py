@@ -2410,7 +2410,7 @@ class Harmonizer(object):
                     except KeyError:
 
                         # estimate vertical
-                        vertical = self.measures[index][0] - (annotation['position'] * (self.measures[index][1] - self.measures[index][0]))
+                        vertical = self.measures[index][0] - (annotation['position'] * (self.measures[index][0] - self.measures[index][1]))
 
                     # add measure number to painting
                     font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
@@ -2718,7 +2718,7 @@ class Harmonizer(object):
         measures = elements['measures']
         chords = elements['chords']
         staff = elements['staff']
-        annotations = [[] for trial in range(len(notes))]
+        annotations = elements['annotations']
 
         # convert to numbered keys from strings
         measures = [self._numb(measure) for measure in measures]
