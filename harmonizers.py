@@ -1659,6 +1659,9 @@ class Harmonizer(object):
             self.measures
         """
 
+        # print measure
+        print('editing measure {}...'.format(measure))
+
         # set up ruler
         self.rule(measure)
 
@@ -2698,8 +2701,8 @@ class Harmonizer(object):
                 # get chord intervals
                 root, harmony = self._peel(self.chords[measure])
 
-                # if the harmony is recoginzied
-                if haromony in self.lexicon:
+                # if the harmony is recognized
+                if harmony in self.lexicon:
 
                     # annotate the intervals
                     intervals = self.lexicon[harmony]
@@ -3194,6 +3197,9 @@ class Harmonizer(object):
         signature = self.signatures[self.signature]
         signature = [member for member in signature if member not in pitches]
 
+        # sort pitches according to novel base notes
+        signature.sort(key=lambda member: int(self._fix(member) in [self._fix(pitch) for pitch in pitches]))
+
         # print
         print('pitches: {} + ({})'.format(list(pitches), signature))
 
@@ -3206,8 +3212,6 @@ class Harmonizer(object):
         # use each pitch as a root
         analyses = []
         for root in pitches:
-
-            print(root)
 
             # create slots
             slots = {degree: None for degree in degrees}
@@ -3261,12 +3265,12 @@ class Harmonizer(object):
                 # check for already filled
                 if not analysis[degree]:
 
-                    # get species
-                    for member in self.cladogram[degree]:
+                    # go through pitches
+                    remainder = [pitch for pitch in signature if pitch not in slotted]
+                    for pitch in remainder:
 
-                        # go through pitches
-                        remainder = [pitch for pitch in signature if pitch not in slotted]
-                        for pitch in remainder:
+                        # get species
+                        for member in self.cladogram[degree]:
 
                             # check against interval
                             interval = self.wheel[root][pitch]
