@@ -1177,14 +1177,14 @@ class Harmonizer(object):
 
         return tile
 
-    def annotate(self, measure, text, position, ratio):
+    def annotate(self, measure, ratio, position, text):
         """Annotate a measure with arbitrary text.
 
         Arguments:
             text: str
             measure: int, beginning measure
-            position: int, vertical position on staff
             ratio: float, distance along measure
+            position: int, vertical position on staff
 
         Returns:
             None
@@ -1197,13 +1197,13 @@ class Harmonizer(object):
         if text == '_':
 
             # clear annotation
-            self.annoations[measure] = []
+            self.annotations[measure] = []
 
         # otherwise
         else:
 
             # add annotations
-            annotation = (position, ratio, text)
+            annotation = {'text': text, 'ratio': ratio, 'position': position}
             self.annotations[measure].append(annotation)
 
         return None
@@ -1713,7 +1713,7 @@ class Harmonizer(object):
         elif 'light' in command:
 
             # parse command and add note
-            light, position, ratio, pitch = command.split()
+            light, ratio, position, pitch = command.split()
             self.light(measure, int(position), float(ratio), pitch.replace('_', ''))
 
             # correct chord
@@ -1795,6 +1795,25 @@ class Harmonizer(object):
             # theorize
             chord = self.theorize(*self.hum(measure), force=force)
             self.reharmonize(measure, chord)
+
+            # return to editor
+            self.edit(measure)
+
+        # add note
+        elif 'annotate' in command:
+
+            # try for all factors
+            try:
+
+                # parse command and add annotations
+                annotate, ratio, position, text = command.split()
+                self.annotate(measure, float(ratio), int(position), text)
+
+            # otherwise assume blank
+            except ValueError:
+
+                # parse again
+                self.annotate(measure, 0.0, 0, '_')
 
             # return to editor
             self.edit(measure)
@@ -2038,13 +2057,13 @@ class Harmonizer(object):
 
         return None
 
-    def light(self, measure, position, ratio, pitch=''):
+    def light(self, measure, ratio, position, pitch=''):
         """LIght up a note at a measure and position, estimating the proportional distance for the measure.
 
         Arguments:
             measure: int, measure index
-            position: int, staff position
             ratio: float, proportional distance
+            position: int, staff position
             pitch='': pitch of note
 
         Returns:
@@ -2061,7 +2080,7 @@ class Harmonizer(object):
         width = right - left
         horizontal = int(ratio * width) + left
 
-        # get vertical cooridinate from position
+        # get vertical coordinate from position
         vertical = self.measures[measure][position]
 
         # create note
@@ -2282,20 +2301,20 @@ class Harmonizer(object):
         """
 
         # resolve beginning and ending
-        if not beginning and not ending:
+        if beginning is None and ending is None:
 
             # set to all
             beginning = 0
             ending = len(self.notes)
 
         # resolve beginning
-        if not beginning:
+        if beginning is None:
 
             # set to zero
             beginning = 0
 
         # resolve ending
-        if not ending:
+        if ending is None:
 
             # set to one past beginning
             ending = beginning + 1
@@ -2358,6 +2377,44 @@ class Harmonizer(object):
 
                 # otherwise
                 else:
+
+                    # convert back to numpy array
+                    painting = numpy.array(xerox)
+
+        # annotate annotations
+        for index, annotations in enumerate(self.annotations):
+
+            # only use beginning to ending
+            if beginning <= index < ending:
+
+                # go through each annotation
+                for annotation in annotations:
+
+                    # convert to image and begin draw mode
+                    xerox = Image.fromarray(painting)
+                    draw = ImageDraw.Draw(xerox)
+
+                    # estimate horizontal coordinate
+                    right = self.measures[index]['right']
+                    left = self.measures[index]['left']
+                    width = right - left
+                    horizontal = int(annotation['ratio'] * width) + left
+
+                    # try to get vertical position
+                    try:
+
+                        # get vertical from measure height
+                        vertical = self.measures[index][annotation['position']]
+
+                    # unless outside range
+                    except KeyError:
+
+                        # estimate vertical
+                        vertical = self.measures[index][0] - (annotation['position'] * (self.measures[index][1] - self.measures[index][0]))
+
+                    # add measure number to painting
+                    font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
+                    draw.text((horizontal, vertical), annotation['text'], font=font, fill='black')
 
                     # convert back to numpy array
                     painting = numpy.array(xerox)
@@ -2661,6 +2718,7 @@ class Harmonizer(object):
         measures = elements['measures']
         chords = elements['chords']
         staff = elements['staff']
+        annotations = [[] for trial in range(len(notes))]
 
         # convert to numbered keys from strings
         measures = [self._numb(measure) for measure in measures]
@@ -2671,6 +2729,7 @@ class Harmonizer(object):
         self.chords = chords
         self.measures = measures
         self.staff = staff
+        self.annotations = annotations
 
         return None
 
@@ -2780,6 +2839,16 @@ class Harmonizer(object):
                             # annotate interval below note
                             center = (note['center'][0], self.measures[measure][0] + 40)
                             draw.text(center, str(interval), font=font, fill='black')
+
+        # add position markers
+        for position in range(*self.positions):
+
+            # only do evens
+            if position % 2 == 0:
+
+                # draw the position
+                point = (self.measures[measure]['left'], self.measures[measure][position])
+                draw.text(point, str(position), font=font, fill='black')
 
         # get top and bottom indices of stave
         top = self.measures[measure][self.positions[1] - 1]
