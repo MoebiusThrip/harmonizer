@@ -124,13 +124,15 @@ class Harmonizer(object):
         self.silhouette = None
         self.original = None
         self.painting = None
-        self.original = None
-        self.staff = None
-        self.measures = None
         self.spacing = None
-        self.notes = None
         self.tiles = None
+
+        # sheet data for stashing
+        self.staff = []
+        self.measures = []
+        self.notes = []
         self.chords = []
+        self.annotations = []
 
         # general harmonic properties
         self.clefs = {}
@@ -1175,29 +1177,34 @@ class Harmonizer(object):
 
         return tile
 
-    def annotate(self, measure, *chords):
-        """Annotate measures with chords.
+    def annotate(self, measure, text, position, ratio):
+        """Annotate a measure with arbitrary text.
 
         Arguments:
+            text: str
             measure: int, beginning measure
-            *chord: unpacked tuple of strings
+            position: int, vertical position on staff
+            ratio: float, distance along measure
 
         Returns:
             None
 
         Populates:
-            self.chords
+            self.annotations
         """
 
-        # populate chords
-        index = measure
-        for chord in chords:
+        # clear with '_'
+        if text == '_':
 
-            # annotate
-            self.chords[index] = chord
+            # clear annotation
+            self.annoations[measure] = []
 
-            # advance index
-            index += 1
+        # otherwise
+        else:
+
+            # add annotations
+            annotation = (position, ratio, text)
+            self.annotations[measure].append(annotation)
 
         return None
 
@@ -1531,6 +1538,7 @@ class Harmonizer(object):
         reports = []
         notes = []
         chords = []
+        annotations = []
         for number, measure in enumerate(measures):
 
             # status
@@ -1587,14 +1595,16 @@ class Harmonizer(object):
             members.sort(key=lambda member: member['center'][0])
             notes.append(members)
 
-            # append blank chord
+            # append blank chord and annotation
             chords.append('')
+            annotations.append([])
 
         # set discoveries
         self.reports = reports
         self.tiles = discoveries
         self.notes = notes
         self.chords = chords
+        self.annotations = annotations
 
         # report
         print(' ')
@@ -1742,19 +1752,17 @@ class Harmonizer(object):
         # or spin the wheel
         elif 'spin' in command:
 
-            print(self.chords[measure])
+            # try
+            try:
 
-            # # try
-            # try:
+                # make the wheel from the chord
+                self.spin(self.chords[measure])
 
-            # make the wheel from the chord
-            self.spin(self.chords[measure])
+            # otherwise
+            except KeyError:
 
-            # # otherwise
-            # except KeyError:
-            #
-            #     # make the wheel from the pitches
-            #     self.spin(*self.hum(measure))
+                # make the wheel from the pitches
+                self.spin(*list(set(self.hum(measure))))
 
             # return to editor
             self.edit(measure)
@@ -3208,7 +3216,8 @@ class Harmonizer(object):
         """
 
         # store all elements
-        elements = {'chords': self.chords, 'notes': self.notes, 'measures': self.measures, 'staff': self.staff}
+        elements = {'chords': self.chords, 'notes': self.notes, 'measures': self.measures}
+        elements.update({'staff': self.staff, 'annotations': self.annotations})
         deposit = '{}/{}'.format(self.directory, 'elements.json')
         self._dump(elements, deposit)
 
