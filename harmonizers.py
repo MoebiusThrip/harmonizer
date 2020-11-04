@@ -1508,11 +1508,8 @@ class Harmonizer(object):
         sheet = self.sheet
 
         # making silhouette
-        initial = time()
         print('making silhouette...')
         silhouette = self.backlight(sheet)
-        final = time()
-        print('took {} minutes'.format((final - initial) / 60))
         self.silhouette = silhouette
 
         # make staff
@@ -1956,12 +1953,28 @@ class Harmonizer(object):
             numpy.array
         """
 
-        # expanding into rgb function
-        expanding = lambda gray: [int(gray * 255), int(gray * 255), int(gray * 255), 255]
+        # clone shadow
+        clone = numpy.copy(shadow)
 
-        # construct hologram
-        hologram = [[expanding(entry + 0.5) for entry in row] for row in shadow]
-        hologram = numpy.array(hologram,  dtype=numpy.uint8)
+        # add back the 0.5 and multiply by 255
+        clone = numpy.add(clone, 0.5)
+        clone = numpy.multiply(clone, 255)
+
+        # make layer for qpacity
+        opacity = numpy.ones((clone.shape[0], clone.shape[1]))
+        opacity = numpy.multiply(opacity, 255)
+
+        # make hologram
+        hologram = numpy.concatenate((clone, clone, clone, opacity), axis=2)
+        hologram = numpy.array(hologram, dtype=uint8)
+        #
+        #
+        # # expanding into rgb function
+        # expanding = lambda gray: [int(gray * 255), int(gray * 255), int(gray * 255), 255]
+        #
+        # # construct hologram
+        # hologram = [[expanding(entry + 0.5) for entry in row] for row in shadow]
+        # hologram = numpy.array(hologram,  dtype=numpy.uint8)
 
         return hologram
 
