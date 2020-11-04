@@ -1707,7 +1707,7 @@ class Harmonizer(object):
             self.light(measure, int(position), float(ratio), pitch.replace('_', ''))
 
             # correct chord
-            self.annotate(measure, self.theorize(*self.hum(measure)))
+            self.reharmonize(measure, self.theorize(*self.hum(measure)))
 
             # return to editor
             self.edit(measure)
@@ -1721,8 +1721,8 @@ class Harmonizer(object):
             self.divide(measure, ratio)
 
             # correct chord
-            self.annotate(measure, self.theorize(*self.hum(measure)))
-            self.annotate(measure + 1, self.theorize(*self.hum(measure + 1)))
+            self.reharmonize(measure, self.theorize(*self.hum(measure)))
+            self.reharmonize(measure + 1, self.theorize(*self.hum(measure + 1)))
 
             # return to editor
             self.edit(measure)
@@ -1734,7 +1734,7 @@ class Harmonizer(object):
             self.conquer(measure)
 
             # correct chord
-            self.annotate(max([0, measure - 1]), self.theorize(*self.hum(max([0, measure - 1]))))
+            self.reharmonize(max([0, measure - 1]), self.theorize(*self.hum(max([0, measure - 1]))))
 
             # return to previous measure
             self.edit(max([0, measure - 1]))
@@ -1800,7 +1800,7 @@ class Harmonizer(object):
             self.correct(measure, *corrections)
 
             # correct chord
-            self.annotate(measure, self.theorize(*self.hum(measure)))
+            self.reharmonize(measure, self.theorize(*self.hum(measure)))
 
             # return to editor
             self.edit(measure)
@@ -1913,7 +1913,7 @@ class Harmonizer(object):
 
             # get chord and annotate
             chord = self.theorize(*pitches)
-            self.annotate(index, chord)
+            self.reharmonize(index, chord)
 
         return None
 
