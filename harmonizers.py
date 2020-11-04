@@ -1644,7 +1644,7 @@ class Harmonizer(object):
 
         return None
 
-    def edit(self, measure):
+    def edit(self, measure=0):
         """Begin the editor at the measure index.
 
         Arguments:
@@ -1735,6 +1735,15 @@ class Harmonizer(object):
 
             # return to previous measure
             self.edit(max([0, measure - 1]))
+
+        # or spin the wheel
+        elif 'spin' in command:
+
+            # make the wheel
+            self.spin(self.theorize(*self.hum(measure)))
+
+            # return to editor
+            self.edit(measure)
 
         # otherwise assume correction
         else:
