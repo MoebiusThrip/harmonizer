@@ -1242,32 +1242,29 @@ class Harmonizer(object):
         return None
 
     def backlight(self, image):
-        """Convert an RGBA image into a black and white image.
+        """Convert an RGBA image into a grayscale image.
 
         Arguments:
-            image: numpy arry
+            image: numpy array
 
         Returns:
             numpy array
         """
 
-        # convert image to black and white shadow
-        shadow = []
-        for row in image:
+        # copy image
+        clone = numpy.copy(image)
 
-            # start new row
-            rowii = []
-            for point in row:
+        # extract all colors and divide by (255 * 3)
+        red = numpy.divide(clone[:, :, 0], 3 * 255)
+        green = numpy.divide(clone[:, :, 1], 3 * 255)
+        blue = numpy.divide(clone[:, :, 2], 3 * 255)
 
-                # add three primary hexadecimal colors and create grayscale
-                gray = sum(point[:3]) / (255 * 3)
-                rowii.append(-0.5 + gray)
+        # sum up all color channels
+        shadow = numpy.add(red, green)
+        shadow = numpy.add(blue, shadow)
 
-            # append row
-            shadow.append(rowii)
-
-        # make into numpy array
-        shadow = numpy.array(shadow)
+        # subtract 0.5 to center at gray
+        shadow = numpy.subtract(shadow, 0.5)
 
         return shadow
 
@@ -1511,8 +1508,11 @@ class Harmonizer(object):
         sheet = self.sheet
 
         # making silhouette
+        initial = time()
         print('making silhouette...')
         silhouette = self.backlight(sheet)
+        final = time()
+        print('took {} minutes'.format((final - initial) / 60))
         self.silhouette = silhouette
 
         # make staff
@@ -3642,7 +3642,7 @@ harmo.prepare()
 harmo.load()
 
 # recover
-harmo.recover()
+#harmo.recover()
 
 # test theorize
 # harmo.theorize(*harmo.hum(10))
