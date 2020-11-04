@@ -1739,8 +1739,17 @@ class Harmonizer(object):
         # or spin the wheel
         elif 'spin' in command:
 
-            # make the wheel
-            self.spin(self.theorize(*self.hum(measure)))
+            # try
+            try:
+
+                # make the wheel from the chord
+                self.spin(self.chords[measure])
+
+            # otherwise
+            except KeyError:
+
+                # make the wheel from the pitches
+                self.soin(*self.hum(measure))
 
             # return to editor
             self.edit(measure)
@@ -2688,16 +2697,21 @@ class Harmonizer(object):
 
                 # get chord intervals
                 root, harmony = self._peel(self.chords[measure])
-                intervals = self.lexicon[harmony]
-                pitch = note['pitch']
-                for interval in intervals:
 
-                    # check pitch
-                    if self.wheel[root][pitch] == self.enharmonize(interval):
+                # if the harmony is recoginzied
+                if haromony in self.lexicon:
 
-                        # annotate interval below note
-                        center = (note['center'][0], self.measures[measure][0] + 40)
-                        draw.text(center, str(interval), font=font, fill='black')
+                    # annotate the intervals
+                    intervals = self.lexicon[harmony]
+                    pitch = note['pitch']
+                    for interval in intervals:
+
+                        # check pitch
+                        if self.wheel[root][pitch] == self.enharmonize(interval):
+
+                            # annotate interval below note
+                            center = (note['center'][0], self.measures[measure][0] + 40)
+                            draw.text(center, str(interval), font=font, fill='black')
 
         # get top and bottom indices of stave
         top = self.measures[measure][self.positions[1] - 1]
