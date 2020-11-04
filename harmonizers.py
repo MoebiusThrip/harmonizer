@@ -2404,13 +2404,13 @@ class Harmonizer(object):
                     try:
 
                         # get vertical from measure height
-                        vertical = self.measures[index][annotation['position']]
+                        vertical = self.measures[index][annotation['position']] - 10
 
                     # unless outside range
                     except KeyError:
 
                         # estimate vertical
-                        vertical = self.measures[index][0] - (annotation['position'] * (self.measures[index][0] - self.measures[index][1]))
+                        vertical = self.measures[index][0] - (annotation['position'] * (self.measures[index][0] - self.measures[index][1])) - 10
 
                     # add measure number to painting
                     font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
@@ -2844,10 +2844,10 @@ class Harmonizer(object):
         for position in range(*self.positions):
 
             # only do evens
-            if position % 2 == 0:
+            if position > 0 and position % 2 == 0:
 
                 # draw the position
-                point = (self.measures[measure]['left'], self.measures[measure][position])
+                point = (self.measures[measure]['left'] + 5 * int(position < 10), self.measures[measure][position] - 10)
                 draw.text(point, str(position), font=font, fill='black')
 
         # get top and bottom indices of stave
