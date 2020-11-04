@@ -1757,6 +1757,38 @@ class Harmonizer(object):
             # return to editor
             self.edit(measure)
 
+        # or reharmonize a chord of choice
+        elif 'reharmonize' in command:
+
+            # reharmonize
+            reharmonize, chord = command.split()
+            self.reharmonize(measure, chord)
+
+            # edit measure
+            self.edit(measure)
+
+        # or theorize
+        elif 'theorize' in command:
+
+            # try
+            try:
+
+                # to unpack command
+                theorize, force = command.split()
+
+            # unless too short
+            except ValueError:
+
+                # set force to Null
+                force = None
+
+            # theorize
+            chord = self.theorize(*self.hum(measure), force=force)
+            self.reharmonize(measure, chord)
+
+            # return to editor
+            self.edit(measure)
+
         # otherwise assume correction
         else:
 
@@ -2239,6 +2271,13 @@ class Harmonizer(object):
             None
         """
 
+        # resolve beginning and ending
+        if not beginning and not ending:
+
+            # set to all
+            beginning = 0
+            ending = len(self.notes)
+
         # resolve beginning
         if not beginning:
 
@@ -2622,6 +2661,22 @@ class Harmonizer(object):
         self.chords = chords
         self.measures = measures
         self.staff = staff
+
+        return None
+
+    def reharmonize(self, measure, chord):
+        """Reharmonize a measure with a new name.
+
+        Arguments:
+            measure: int, the measure index
+            chord: str, the chord name
+
+        Returns:
+            None
+        """
+
+        # set the chord name
+        self.chords[measure] = chord
 
         return None
 
@@ -3177,11 +3232,12 @@ class Harmonizer(object):
 
         return None
 
-    def theorize(self, *pitches):
+    def theorize(self, *pitches, force=None):
         """Theorize about the chord given the pitches.
 
         Arguments:
             *pitches: unpacked tuple of strings
+            force=None: force a pitch to be the root
 
         Returns:
             string
@@ -3243,6 +3299,12 @@ class Harmonizer(object):
         analyses.sort(key=lambda slots: len([interval[1] for interval in slots.values() if interval and accidental(interval)]), reverse=True)
         analyses.sort(key=lambda slots: max([int(number) for number, info in slots.items() if info]), reverse=True)
         analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info] or [13]))
+
+        # sort by a forcing root
+        if force:
+
+            # sort by the forced root
+            analyses.sort(key=lambda slots: int(slots[1][0] == force))
 
         # print analysis
         self._depict(analyses)
