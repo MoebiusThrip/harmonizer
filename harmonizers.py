@@ -1742,17 +1742,19 @@ class Harmonizer(object):
         # or spin the wheel
         elif 'spin' in command:
 
-            # try
-            try:
+            print(self.chords[measure])
 
-                # make the wheel from the chord
-                self.spin(self.chords[measure])
+            # # try
+            # try:
 
-            # otherwise
-            except KeyError:
+            # make the wheel from the chord
+            self.spin(self.chords[measure])
 
-                # make the wheel from the pitches
-                self.soin(*self.hum(measure))
+            # # otherwise
+            # except KeyError:
+            #
+            #     # make the wheel from the pitches
+            #     self.spin(*self.hum(measure))
 
             # return to editor
             self.edit(measure)
@@ -3039,7 +3041,7 @@ class Harmonizer(object):
             for interval in structure:
 
                 # get the appropriate pitch
-                pitch = self.inverse[root][interval]
+                pitch = self.inverse[root][self.enharmonize(interval)]
                 pitches.append(pitch)
 
         # reduce pitches
