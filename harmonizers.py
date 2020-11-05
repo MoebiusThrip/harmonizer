@@ -2190,6 +2190,7 @@ class Harmonizer(object):
 
             # get rid of duplicates
             pipes = [pipe for pipe in pipes if pipe + 1 not in pipes]
+            pipes.sort()
 
             # get all vertical indices for white space not at staff lines
             indices = [index for index in range(highest, lowest)]
@@ -3434,19 +3435,20 @@ class Harmonizer(object):
             maximum = max([5, max([number for number, info in analysis.items() if info])])
             degrees = [degree for degree in degrees if degree <= maximum]
 
-            # go through remaining degree
+            # go through remaining degrees
             slotted = []
             for degree in degrees:
 
                 # check for already filled
                 if not analysis[degree]:
 
-                    # go through species
+                    # go through pitches
                     remainder = [pitch for pitch in signature if pitch not in slotted]
-                    for member in self.cladogram[degree]:
+                    remainder.sort()
+                    for pitch in remainder:
 
-                        # go through remaining pitches
-                        for pitch in remainder:
+                        # go through each species
+                        for member in self.cladogram[degree]:
 
                             # check against interval
                             interval = self.wheel[root][pitch]
