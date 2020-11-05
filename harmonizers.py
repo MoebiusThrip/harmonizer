@@ -308,8 +308,7 @@ class Harmonizer(object):
         """
 
         # deepen shadow
-        prism = [[[float(entry)] for entry in row] for row in shadow]
-        prism = numpy.array(prism)
+        prism = shadow.reshape(*shadow.shape, 1)
 
         return prism
 
@@ -1539,7 +1538,7 @@ class Harmonizer(object):
         for number, measure in enumerate(measures):
 
             # status
-            print('measure {} of {}...'.format(number, len(self.measures)))
+            print('measure {} of {}...'.format(number, len(measures)))
 
             # begin notes of the measure
             members = []
@@ -1711,7 +1710,7 @@ class Harmonizer(object):
 
             # parse command and add note
             light, ratio, position, pitch = command.split()
-            self.light(measure, int(position), float(ratio), pitch.replace('_', ''))
+            self.light(measure, float(ratio), int(position), pitch.replace('_', ''))
 
             # correct chord
             self.reharmonize(measure, self.theorize(*self.hum(measure)))
@@ -1966,15 +1965,7 @@ class Harmonizer(object):
 
         # make hologram
         hologram = numpy.concatenate((clone, clone, clone, opacity), axis=2)
-        hologram = numpy.array(hologram, dtype=uint8)
-        #
-        #
-        # # expanding into rgb function
-        # expanding = lambda gray: [int(gray * 255), int(gray * 255), int(gray * 255), 255]
-        #
-        # # construct hologram
-        # hologram = [[expanding(entry + 0.5) for entry in row] for row in shadow]
-        # hologram = numpy.array(hologram,  dtype=numpy.uint8)
+        hologram = numpy.array(hologram, dtype='uint8')
 
         return hologram
 
@@ -2170,11 +2161,15 @@ class Harmonizer(object):
 
         # go through each stave
         measures = []
-        for stave in self.staff:
+        for number, stave in enumerate(self.staff):
 
             # set top and bottom
             top = stave[9]
             bottom = stave[1]
+
+            # set highest and lowest
+            highest = stave[self.positions[1] - 1]
+            lowest = stave[self.positions[0]]
 
             # get all columns
             columns = []
@@ -2194,14 +2189,14 @@ class Harmonizer(object):
             pipes = [pipe for pipe in pipes if pipe + 1 not in pipes]
 
             # get all vertical indices for white space not at staff lines
-            indices = [index for index in range(top, bottom)]
+            indices = [index for index in range(highest, lowest)]
             indices = [index for index in indices if all([abs(index - row) > 3 for row in stave.values()])]
 
-            # verify that pipes are legitamate
+            # verify that pipes are legitimate
             verified = []
             for pipe in pipes:
 
-                # check for whites
+                # check for white space on either side
                 lefts = [silhouette[index][pipe - 3] for index in indices]
                 rights = [silhouette[index][pipe + 3] for index in indices]
                 if all([float(entry) > 0.4 for entry in lefts + rights]):
@@ -2209,12 +2204,36 @@ class Harmonizer(object):
                     # add to verified
                     verified.append(pipe)
 
-            # detect all possible blanks
+                # add to pipes if number hits on the right is approximately equal to number on left
+                hits = [pixel for pixel in lefts if pixel > 0.4]
+                hitsii = [pixel for pixel in rights if pixel > 0.4]
+                if abs(len(hits) - len(hitsii)) < 2:
+
+                    # add to pipes
+                    verified.append(pipe)
+
+            # detect all possible blanks on left side
             criterion = lambda x: x < 0.4
             blanks = [index for index, column in enumerate(columns) if self._detect(column, 100, 0.95, criterion=criterion)]
             blanks = [index for index in blanks if index < verified[0]]
             blanks.sort()
             start = blanks[-1]
+
+            # detect all possible blanks on right side
+            criterion = lambda x: x < 0.4
+            blanks = [index for index, column in enumerate(columns) if self._detect(column, 100, 0.95, criterion=criterion)]
+            blanks = [index for index in blanks if index > verified[-1]]
+            blanks.sort()
+
+            # add edge to pipe if not already in pipes
+            if blanks[0] > pipes[-1] + 3:
+
+                # add to pipes
+                vereified.append(blanks[0])
+
+            # remove dups and sort
+            verified = list(set(verified))
+            verified.sort()
 
             # add a measure for each pipe
             for pipe in verified:
@@ -2225,7 +2244,7 @@ class Harmonizer(object):
                 measures.append(measure)
                 start = pipe
 
-        # set attribue
+        # set attribute
         self.measures = measures
 
         return None
@@ -2559,7 +2578,6 @@ class Harmonizer(object):
         """
 
         # make a matrix from the image
-        # vectors = [shadow.ravel() for shadow in shadows]
         matrix = numpy.array([self._deepen(shadow) for shadow in shadows])
 
         # make prediction
@@ -3420,12 +3438,12 @@ class Harmonizer(object):
                 # check for already filled
                 if not analysis[degree]:
 
-                    # go through pitches
+                    # go through species
                     remainder = [pitch for pitch in signature if pitch not in slotted]
-                    for pitch in remainder:
+                    for member in self.cladogram[degree]:
 
-                        # get species
-                        for member in self.cladogram[degree]:
+                        # go through remaining pitches
+                        for pitch in remainder:
 
                             # check against interval
                             interval = self.wheel[root][pitch]
