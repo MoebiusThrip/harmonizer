@@ -787,14 +787,17 @@ class Harmonizer(object):
         margin = int((self.width - width) / 2)
         marginii = int((self.height - height) / 2)
 
-        # replace rows
-        for row in range(marginii, height + marginii):
+        # # replace rows
+        # for row in range(marginii, height + marginii):
+        #
+        #     # replace columns
+        #     for column in range(margin, width + margin):
+        #
+        #         # replace entry
+        #         mask[row][column] = shadow[row - marginii][column - margin]
 
-            # replace columns
-            for column in range(margin, width + margin):
-
-                # replace entry
-                mask[row][column] = shadow[row - marginii][column - margin]
+        # replace mask with shadow
+        mask[marginii: height + marginii, margin: margin + width] = shadow[marginii: height + marginii, margin: margin + width]
 
         return mask
 
@@ -1000,6 +1003,7 @@ class Harmonizer(object):
             width = self.width
 
         # set default height
+        if not height:
 
             # set height
             height = self.height
@@ -1678,7 +1682,7 @@ class Harmonizer(object):
         command = input('??>')
 
         # exit
-        if command in ('exit', 'XXX'):
+        if command in ('exit', 'xxx'):
 
             return None
 
@@ -2230,10 +2234,10 @@ class Harmonizer(object):
             blanks.sort()
 
             # add edge to pipe if not already in pipes
-            if blanks[0] > pipes[-1] + 3:
+            if blanks[0] > verified[-1] + 3:
 
                 # add to pipes
-                vereified.append(blanks[0])
+                verified.append(blanks[0])
 
             # remove dups and sort
             verified = list(set(verified))
