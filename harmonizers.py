@@ -465,7 +465,9 @@ class Harmonizer(object):
 
         # make note
         note = {'center': element['center']}
-        note['pitch'] = self.clefs[self.clef][element['position']]
+        pitch = self.clefs[self.clef][element['position']]
+        pitches = [entry for entry in self.signatures[self.signature] if self._fix(entry) == self._fix(pitch)]
+        note['pitch'] = pitches[0]
         note['interval'] = self.wheel[self.key][note['pitch']]
         note['color'] = self.spectrum[note['interval']]
 
@@ -1569,6 +1571,7 @@ class Harmonizer(object):
                 tile['prediction'] = [float(entry) for entry in prediction]
 
             # find elements
+            print('coalescing...')
             for category in self.categories:
 
                 # find elements
