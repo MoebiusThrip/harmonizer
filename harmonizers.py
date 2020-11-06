@@ -2398,6 +2398,17 @@ class Harmonizer(object):
                     draw.text((horizontal, vertical), annotation['text'], font=font, fill='black')
 
         # print status
+        print('adding measure numbers...')
+        for index, measure in enumerate(self.measures):
+
+            # get coordinates
+            left = measure['left']
+            bottom = measure[0]
+
+            # add measure number to painting
+            draw.text((left, bottom), str(index), font=font, fill='black')
+
+        # print status
         print('annotating chords...')
 
         # reset font size
@@ -2417,9 +2428,6 @@ class Harmonizer(object):
                     left = self.measures[index]['left']
                     top = self.measures[index][self.positions[1] - 1] - 50
                     bottom = self.measures[index][0]
-
-                    # add measure number to painting
-                    draw.text((left, bottom), str(index), font=font, fill='black')
 
                     # determine chord root
                     root, harmony = self._peel(chord)
@@ -3631,7 +3639,7 @@ class Harmonizer(object):
         """
 
         # calculate criterion
-        criterion = (neighbors + 1) * (-0.48) - 480
+        criterion = (neighbors + 1) * (-0.48)
 
         # go through vertical indices
         surrounds = []
@@ -3640,16 +3648,19 @@ class Harmonizer(object):
             # go through horizontals
             for horizontal in range(1, len(shadow[0]) - 1):
 
-                # sum up the 3 x 3 grid around the center point
-                grid = shadow[vertical - 1: vertical + 2, horizontal - 1: horizontal + 2]
-                score = numpy.sum(grid) + 1000 * grid[1][1]
+                # check for high enough score at center point
+                if shadow[vertical][horizontal] < -0.48:
 
-                # add to surrounds
-                if score < criterion:
+                    # sum up the 3 x 3 grid around the center point
+                    grid = shadow[vertical - 1: vertical + 2, horizontal - 1: horizontal + 2]
+                    score = numpy.sum(grid)
 
-                    # add to surounds
-                    point = (vertical, horizontal)
-                    surrounds.append(point)
+                    # add to surrounds
+                    if score < criterion:
+
+                        # add to surounds
+                        point = (vertical, horizontal)
+                        surrounds.append(point)
 
 
         # # get list of all dark points
