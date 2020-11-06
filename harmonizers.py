@@ -1614,7 +1614,7 @@ class Harmonizer(object):
         for category in self.categories:
 
             # print report
-                print('{} {}'.format(len(discoveries[category]), category))
+            print('{} {}'.format(len(discoveries[category]), category))
 
         return None
 
@@ -2359,70 +2359,10 @@ class Harmonizer(object):
             # set to one past beginning
             ending = beginning + 1
 
-        # coalesce notes
-        notes = [note for measure in self.notes[beginning: ending] for note in measure]
-
-        # go through each category
-        print('painting {} notes...'.format(len(notes)))
-        painting = numpy.copy(self.sheet)
-        for note in notes:
-
-            # shade it
-            box = self._bound(note['center'])
-            color = monocolor or note['color']
-            painting = self.shade(painting, box, color, criterion)
-
-        # print status
-        print('annotating chords...')
-
-        # annotate chords
-        for index, chord in enumerate(self.chords):
-
-            # only use beginning to ending
-            if beginning <= index < ending:
-
-                # get coordinates
-                left = self.measures[index]['left']
-                top = self.measures[index][self.positions[1] - 1] - 50
-                bottom = self.measures[index][0]
-
-                # convert to image and begin draw mode
-                xerox = Image.fromarray(painting)
-                draw = ImageDraw.Draw(xerox)
-
-                # add measure number to painting
-                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
-                draw.text((left, bottom), str(index), font=font, fill='black')
-
-                # if there is a chord name
-                if chord:
-
-                    # determine chord root
-                    root, harmony = self._peel(chord)
-
-                    # get color
-                    interval = self.wheel[self.key][root]
-                    color = self.spectrum[interval]
-
-                    # add chord to painting
-                    font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), self.size)
-                    draw.text((left, top), chord, font=font, fill='black')
-
-                    # convert back to numpy array
-                    painting = numpy.array(xerox)
-
-                    # shade chord box
-                    up = top
-                    down = top + self.size
-                    right = self.measures[index]['right']
-                    box = (up, down, left, right)
-                    painting = self.shade(painting, box, color, criterion)
-
-                # otherwise
-                else:
-
-                    # convert back to numpy array
-                    painting = numpy.array(xerox)
+        # convert to image and begin draw mode
+        xerox = Image.fromarray(self.painting)
+        draw = ImageDraw.Draw(xerox)
+        font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
 
         # print status
         print('adding annotations...')
@@ -2435,10 +2375,6 @@ class Harmonizer(object):
 
                 # go through each annotation
                 for annotation in annotations:
-
-                    # convert to image and begin draw mode
-                    xerox = Image.fromarray(painting)
-                    draw = ImageDraw.Draw(xerox)
 
                     # estimate horizontal coordinate
                     right = self.measures[index]['right']
@@ -2459,13 +2395,69 @@ class Harmonizer(object):
                         vertical = self.measures[index][0] - (annotation['position'] * (self.measures[index][0] - self.measures[index][1])) - 10
 
                     # add measure number to painting
-                    font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
                     draw.text((horizontal, vertical), annotation['text'], font=font, fill='black')
 
-                    # convert back to numpy array
-                    painting = numpy.array(xerox)
+        # print status
+        print('annotating chords...')
 
-        # set it
+        # annotate chords
+        chords = []
+        for index, chord in enumerate(self.chords):
+
+            # only use beginning to ending
+            if beginning <= index < ending:
+
+                # get coordinates
+                left = self.measures[index]['left']
+                top = self.measures[index][self.positions[1] - 1] - 50
+                bottom = self.measures[index][0]
+
+                # add measure number to painting
+                draw.text((left, bottom), str(index), font=font, fill='black')
+
+                # determine chord root
+                root, harmony = self._peel(chord)
+
+                # get color
+                interval = self.wheel[self.key][root]
+                color = self.spectrum[interval]
+
+                # add chord to painting
+                draw.text((left, top), chord, font=font, fill='black')
+
+                # add chord box for shading later
+                up = top
+                down = top + self.size
+                right = self.measures[index]['right']
+                box = (up, down, left, right)
+                chords.append((box, color))
+
+        # convert back to numpy array
+        painting = numpy.array(xerox)
+
+        # print status
+        print('shading chords...')
+
+        # go through each chord
+        for box, color in chords:
+
+            # shade chord box
+            painting = self.shade(painting, box, color, criterion)
+
+        # coalesce notes
+        notes = [note for measure in self.notes[beginning: ending] for note in measure]
+
+        # go through each category
+        print('painting {} notes...'.format(len(notes)))
+        painting = numpy.copy(self.sheet)
+        for note in notes:
+
+            # shade it
+            box = self._bound(note['center'])
+            color = monocolor or note['color']
+            painting = self.shade(painting, box, color, criterion)
+
+        # set attribute
         self.painting = painting
 
         return None
@@ -3027,53 +3019,24 @@ class Harmonizer(object):
             None
         """
 
-        print('begin shading...')
-        initial = time()
-
         # get color from the palette
         color = self.palette[color]
 
         # unpack box
         up, down, left, right = box
 
-        # # make copy so as not to disturb the training data
-        # image = numpy.copy(image)
-
-        final = time()
-        print('took {} seconds'.format(final - initial))
-        initial = time()
-
-        print('making tile...')
-
         # get the tiling subset (still pointing to image)
         tile = image[up:down, left:right]
-
-        final = time()
-        print('took {} seconds'.format(final - initial))
-        initial = time()
-
-        print('reckoning...')
 
         # make a shadow and determine shade points
         shadow = self.backlight(tile)
         reckoning = self.weigh(shadow, criterion)
-
-        final = time()
-        print('took {} seconds'.format(final - initial))
-        initial = time()
-
-
-        print('shading...')
 
         # shade all points
         for vertical, horizontal in reckoning:
 
             # color point
             tile[vertical][horizontal] = color
-
-        final = time()
-        print('took {} seconds'.format(final - initial))
-        initial = time()
 
         return image
 
@@ -3638,7 +3601,7 @@ class Harmonizer(object):
 
         return None
 
-    def weigh(self, shadow, criterion):
+    def weigh(self, shadow, neighbors):
         """Weigh each pixel based on the criterion for number of surrounding dark pixels.
 
         Arguments:
@@ -3649,44 +3612,66 @@ class Harmonizer(object):
             list of list of (int, int) tuples, coordinates of pixels with enough neighbors
         """
 
-        # get list of all dark points
-        darks = []
-        for vertical, row in enumerate(shadow):
+        # calculate criterion
+        criterion = (neighbors + 1) * (-0.4) - 400
 
-            # and amongst each pixel
-            for horizontal, pixel in enumerate(row):
+        # go through vertical indices
+        surrounds = []
+        for vertical in range(1, len(shadow) - 1):
 
-                # check for dark pixel
-                if pixel < -0.2:
+            # go through horizontals
+            for horizontal in range(1, len(shadow[0]) - 1):
 
-                    # add to darks
+                # sum up the 3 x 3 grid around the center point
+                grid = shadow[vertical - 1: vertical + 2, horizontal - 1: horizontal + 2]
+                score = numpy.sum(grid) + 1000 * grid[1][1]
+
+                # add to surrounds
+                if score < criterion:
+
+                    # add to surounds
                     point = (vertical, horizontal)
-                    darks.append(point)
+                    surrounds.append(point)
 
-        # find which meet criteria
-        surrounded = []
-        for point in darks:
 
-            # check vertical neighbors
-            count = 0
-            for vertical in (point[0] - 1, point[0], point[0] + 1):
+        # # get list of all dark points
+        # darks = []
+        # for vertical, row in enumerate(shadow):
+        #
+        #     # and amongst each pixel
+        #     for horizontal, pixel in enumerate(row):
+        #
+        #         # check for dark pixel
+        #         if pixel < -0.2:
+        #
+        #             # add to darks
+        #             point = (vertical, horizontal)
+        #             darks.append(point)
+        #
+        # # find which meet criteria
+        # surrounded = []
+        # for point in darks:
+        #
+        #     # check vertical neighbors
+        #     count = 0
+        #     for vertical in (point[0] - 1, point[0], point[0] + 1):
+        #
+        #         # and horizontal neigbors
+        #         for horizontal in (point[1] - 1, point[1], point[1] + 1):
+        #
+        #             # check for dark pixel, excluding middle
+        #             if (vertical, horizontal) in darks and (vertical, horizontal) != point:
+        #
+        #                 # add count
+        #                 count += 1
+        #
+        #     # add to surrounded points if criteria is met
+        #     if count >= criterion:
+        #
+        #         # add to surround points
+        #         surrounded.append(point)
 
-                # and horizontal neigbors
-                for horizontal in (point[1] - 1, point[1], point[1] + 1):
-
-                    # check for dark pixel, excluding middle
-                    if (vertical, horizontal) in darks and (vertical, horizontal) != point:
-
-                        # add count
-                        count += 1
-
-            # add to surrounded points if criteria is met
-            if count >= criterion:
-
-                # add to surround points
-                surrounded.append(point)
-
-        return surrounded
+        return surrounds
 
     def view(self, measure):
         """View a measure's contents.
