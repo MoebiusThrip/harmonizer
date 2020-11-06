@@ -797,7 +797,7 @@ class Harmonizer(object):
         #         mask[row][column] = shadow[row - marginii][column - margin]
 
         # replace mask with shadow
-        mask[marginii: height + marginii, margin: margin + width] = shadow[marginii: height + marginii, margin: margin + width]
+        mask[marginii: height + marginii, margin: margin + width] = shadow
 
         return mask
 
@@ -2215,7 +2215,7 @@ class Harmonizer(object):
                 # add to pipes if number hits on the right is approximately equal to number on left
                 hits = [pixel for pixel in lefts if pixel > 0.4]
                 hitsii = [pixel for pixel in rights if pixel > 0.4]
-                if abs(len(hits) - len(hitsii)) < 2:
+                if abs(len(hits) - len(hitsii)) < 1:
 
                     # add to pipes
                     verified.append(pipe)
@@ -2364,13 +2364,16 @@ class Harmonizer(object):
 
         # go through each category
         print('painting {} notes...'.format(len(notes)))
-        painting = self.sheet
+        painting = numpy.copy(self.sheet)
         for note in notes:
 
             # shade it
             box = self._bound(note['center'])
             color = monocolor or note['color']
             painting = self.shade(painting, box, color, criterion)
+
+        # print status
+        print('annotating chords...')
 
         # annotate chords
         for index, chord in enumerate(self.chords):
@@ -2420,6 +2423,9 @@ class Harmonizer(object):
 
                     # convert back to numpy array
                     painting = numpy.array(xerox)
+
+        # print status
+        print('adding annotations...')
 
         # annotate annotations
         for index, annotations in enumerate(self.annotations):
@@ -3021,27 +3027,53 @@ class Harmonizer(object):
             None
         """
 
+        print('begin shading...')
+        initial = time()
+
         # get color from the palette
         color = self.palette[color]
 
         # unpack box
         up, down, left, right = box
 
-        # make copy so as not to disturb the training data
-        image = numpy.copy(image)
+        # # make copy so as not to disturb the training data
+        # image = numpy.copy(image)
+
+        final = time()
+        print('took {} seconds'.format(final - initial))
+        initial = time()
+
+        print('making tile...')
 
         # get the tiling subset (still pointing to image)
-        tile = [row[left:right] for row in image[up:down]]
+        tile = image[up:down, left:right]
+
+        final = time()
+        print('took {} seconds'.format(final - initial))
+        initial = time()
+
+        print('reckoning...')
 
         # make a shadow and determine shade points
         shadow = self.backlight(tile)
         reckoning = self.weigh(shadow, criterion)
+
+        final = time()
+        print('took {} seconds'.format(final - initial))
+        initial = time()
+
+
+        print('shading...')
 
         # shade all points
         for vertical, horizontal in reckoning:
 
             # color point
             tile[vertical][horizontal] = color
+
+        final = time()
+        print('took {} seconds'.format(final - initial))
+        initial = time()
 
         return image
 
@@ -3418,6 +3450,9 @@ class Harmonizer(object):
         analyses.sort(key=lambda slots: len([interval[1] for interval in slots.values() if interval and accidental(interval)]), reverse=True)
         analyses.sort(key=lambda slots: max([int(number) for number, info in slots.items() if info]), reverse=True)
         analyses.sort(key=lambda slots: min([int(number) for number, info in slots.items() if not info] or [13]))
+
+        # now sort by length of nonzero slots
+        analyses.sort(key=lambda slots: len([info for degree, info in slots.items() if info]))
 
         # sort by a forcing root
         if force:
