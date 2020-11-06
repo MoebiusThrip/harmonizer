@@ -2360,7 +2360,7 @@ class Harmonizer(object):
             ending = beginning + 1
 
         # convert to image and begin draw mode
-        xerox = Image.fromarray(self.painting)
+        xerox = Image.fromarray(self.sheet)
         draw = ImageDraw.Draw(xerox)
         font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
 
@@ -2400,48 +2400,61 @@ class Harmonizer(object):
         # print status
         print('annotating chords...')
 
+        # reset font size
+        font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 30)
+
         # annotate chords
-        chords = []
+        boxes = []
         for index, chord in enumerate(self.chords):
 
             # only use beginning to ending
             if beginning <= index < ending:
 
-                # get coordinates
-                left = self.measures[index]['left']
-                top = self.measures[index][self.positions[1] - 1] - 50
-                bottom = self.measures[index][0]
+                # assuming there is a chord
+                if chord:
 
-                # add measure number to painting
-                draw.text((left, bottom), str(index), font=font, fill='black')
+                    # get coordinates
+                    left = self.measures[index]['left']
+                    top = self.measures[index][self.positions[1] - 1] - 50
+                    bottom = self.measures[index][0]
 
-                # determine chord root
-                root, harmony = self._peel(chord)
+                    # add measure number to painting
+                    draw.text((left, bottom), str(index), font=font, fill='black')
 
-                # get color
-                interval = self.wheel[self.key][root]
-                color = self.spectrum[interval]
+                    # determine chord root
+                    root, harmony = self._peel(chord)
 
-                # add chord to painting
-                draw.text((left, top), chord, font=font, fill='black')
+                    # get color
+                    interval = self.wheel[self.key][root]
+                    color = self.spectrum[interval]
 
-                # add chord box for shading later
-                up = top
-                down = top + self.size
-                right = self.measures[index]['right']
-                box = (up, down, left, right)
-                chords.append((box, color))
+                    # add chord to painting
+                    draw.text((left, top), chord, font=font, fill='black')
+
+                    # add chord box for shading later
+                    up = top
+                    down = top + self.size
+                    right = self.measures[index]['right']
+                    box = (up, down, left, right)
+                    boxes.append((box, color))
 
         # convert back to numpy array
         painting = numpy.array(xerox)
 
         # print status
-        print('shading chords...')
+        print('shading {} chords...'.format(len(boxes)))
 
         # go through each chord
-        for box, color in chords:
+        for index, pair in enumerate(boxes):
+
+            # print status
+            if index % 10 == 0:
+
+                # print
+                print('shading chord {}...'.format(index))
 
             # shade chord box
+            box, color = pair
             painting = self.shade(painting, box, color, criterion)
 
         # coalesce notes
@@ -2449,8 +2462,13 @@ class Harmonizer(object):
 
         # go through each category
         print('painting {} notes...'.format(len(notes)))
-        painting = numpy.copy(self.sheet)
-        for note in notes:
+        for index, note in enumerate(notes):
+
+            # print status
+            if index % 100 == 0:
+
+                # print
+                print('shading note {}...'.format(index))
 
             # shade it
             box = self._bound(note['center'])
@@ -3613,7 +3631,7 @@ class Harmonizer(object):
         """
 
         # calculate criterion
-        criterion = (neighbors + 1) * (-0.4) - 400
+        criterion = (neighbors + 1) * (-0.48) - 480
 
         # go through vertical indices
         surrounds = []
