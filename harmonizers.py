@@ -2198,24 +2198,30 @@ class Harmonizer(object):
 
             # get all vertical indices for white space not at staff lines
             indices = [index for index in range(highest, lowest)]
-            indices = [index for index in indices if all([abs(index - row) > 3 for row in stave.values()])]
+            rows = [stave[position] for position in (1, 3, 5, 7, 9)]
+            indices = [index for index in indices if all([abs(index - row) > 3 for row in rows])]
 
             # verify that pipes are legitimate
             verified = []
             for pipe in pipes:
 
                 # check for white space on either side
-                lefts = [silhouette[index][pipe - 3] for index in indices]
-                rights = [silhouette[index][pipe + 3] for index in indices]
-                if all([float(entry) > 0.4 for entry in lefts + rights]):
+                lefts = [(index, silhouette[index][pipe - 3]) for index in indices]
+                rights = [(index, silhouette[index][pipe + 3]) for index in indices]
+                if all([float(entry[1]) > 0.4 for entry in lefts + rights]):
 
                     # add to verified
                     verified.append(pipe)
 
                 # add to pipes if number hits on the right is approximately equal to number on left
-                hits = [pixel for pixel in lefts if pixel > 0.4]
-                hitsii = [pixel for pixel in rights if pixel > 0.4]
-                if abs(len(hits) - len(hitsii)) < 1:
+                hits = [pixel[0] for pixel in lefts if pixel[1] < -0.4]
+                hitsii = [pixel[0] for pixel in rights if pixel[1] < -0.4]
+                heights = numpy.average(hits or [0.0])
+                heightsii = numpy.average(hitsii or [0.0])
+                difference = abs(heights - heightsii)
+
+                #if abs(len(hits) - len(hitsii)) < 10 and abs(heights - heightsii) < 20:
+                if difference < 10:
 
                     # add to pipes
                     verified.append(pipe)
