@@ -2174,7 +2174,7 @@ class Harmonizer(object):
             top = stave[9]
             bottom = stave[1]
 
-            # set highest and lowest
+            # set highest and lowest row index
             highest = stave[self.positions[1] - 1]
             lowest = stave[self.positions[0]]
 
@@ -2206,8 +2206,8 @@ class Harmonizer(object):
             for pipe in pipes:
 
                 # check for white space on either side
-                lefts = [(index, silhouette[index][pipe - 3]) for index in indices]
-                rights = [(index, silhouette[index][pipe + 3]) for index in indices]
+                lefts = [(index, silhouette[index][pipe - 7]) for index in indices]
+                rights = [(index, silhouette[index][pipe + 7]) for index in indices]
                 if all([float(entry[1]) > 0.4 for entry in lefts + rights]):
 
                     # add to verified
