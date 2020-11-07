@@ -2206,8 +2206,8 @@ class Harmonizer(object):
             for pipe in pipes:
 
                 # check for white space on either side
-                lefts = [(index, silhouette[index][pipe - 7]) for index in indices]
-                rights = [(index, silhouette[index][pipe + 7]) for index in indices]
+                lefts = [(index, silhouette[index][pipe - 6]) for index in indices]
+                rights = [(index, silhouette[index][pipe + 6]) for index in indices]
                 if all([float(entry[1]) > 0.4 for entry in lefts + rights]):
 
                     # add to verified
