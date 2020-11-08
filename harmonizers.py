@@ -790,15 +790,6 @@ class Harmonizer(object):
         margin = int((self.width - width) / 2)
         marginii = int((self.height - height) / 2)
 
-        # # replace rows
-        # for row in range(marginii, height + marginii):
-        #
-        #     # replace columns
-        #     for column in range(margin, width + margin):
-        #
-        #         # replace entry
-        #         mask[row][column] = shadow[row - marginii][column - margin]
-
         # replace mask with shadow
         mask[marginii: height + marginii, margin: margin + width] = shadow
 
@@ -1458,7 +1449,7 @@ class Harmonizer(object):
                     vertical = int(numpy.average(verticals, weights=weighting))
 
                     # check against criteria
-                    if len(weighting) > 100:
+                    if len(weighting) > 150:
 
                         # add to condensations
                         condensation = self._tesselate(horizontal, vertical, silhouette, measure)
