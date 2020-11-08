@@ -58,6 +58,9 @@ class Harmonizer(object):
             None
         """
 
+        # current time
+        self.time = time()
+
         # image parameters
         self.gray = 0.2
         self.darkness = 20
@@ -1181,6 +1184,31 @@ class Harmonizer(object):
 
         return tile
 
+    def _time(self, message):
+        """Start timing a block of code, and print results with a message.
+
+        Arguments:
+            message: str
+
+        Returns:
+            None
+        """
+
+        # get final time
+        final = time()
+
+        # calculate duration and reset time
+        duration = final - self.time
+        self.time = final
+
+        # print duration
+        print('took {} seconds.'.format(duration))
+
+        # begin new block
+        print(message)
+
+        return None
+
     def annotate(self, measure, ratio, position, text):
         """Annotate a measure with arbitrary text.
 
@@ -1332,7 +1360,7 @@ class Harmonizer(object):
 
         return None
 
-    def coalesce(self, tiles, silhouette, category, measure, width=25, height=25):
+    def coalesce(self, tiles, silhouette, category, measure, width=25, height=25, plot=False):
         """Coalesce several overlapping detections into single centered detections.
 
         Arguments:
@@ -1341,6 +1369,7 @@ class Harmonizer(object):
             category: str, the category
             width=25: width of insert
             height=25: height of insert
+            plot=False: boolean, make plot?
 
         Returns:
             list of dicts
@@ -1388,10 +1417,14 @@ class Harmonizer(object):
             points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
             weights = [float(prediction[index]) for prediction in predictions if prediction[index] == max(prediction)]
 
-            # pyplot.cla()
-            # xs = [point[0] for point in points]
-            # ys = [point[1] for point in points]
-            # pyplot.plot(xs, ys, 'g,')
+            # begin plot
+            if plot:
+
+                # plot all points
+                pyplot.cla()
+                xs = [point[0] for point in points]
+                ys = [point[1] for point in points]
+                pyplot.plot(xs, ys, 'g,')
 
             # check for points
             if len(points) > 0:
@@ -1403,45 +1436,62 @@ class Harmonizer(object):
                 # get the cluster centers
                 condensations = []
                 clusters = propagation.cluster_centers_
+
+                # plot cluster centers
+                if plot:
+
+                    # go through each cluster
+                    for cluster in clusters:
+
+                        # plot
+                        pyplot.plot(cluster[0], cluster[1], 'rx')
+
+                # get average points of each cluster
                 for indexii, cluster in enumerate(clusters):
 
-                    # get average points
+                    # get weighted averages
                     horizontals = [point[0] for point, label in zip(points, propagation.labels_) if label == indexii]
                     verticals = [point[1] for point, label in zip(points, propagation.labels_) if label == indexii]
                     weighting = [weight for weight, label in zip(weights, propagation.labels_) if label == indexii]
-
-                    # make condensation
                     horizontal = int(numpy.average(horizontals, weights=weighting))
                     vertical = int(numpy.average(verticals, weights=weighting))
-                    condensation = self._tesselate(horizontal, vertical, silhouette, measure)
-                    condensations.append(condensation)
 
-            #         pyplot.plot(horizontal, vertical, 'mx')
-            #
-            #         horizontal = int(numpy.average(horizontals))
-            #         vertical = int(numpy.average(verticals))
-            #
-            #         pyplot.plot(horizontal, vertical, 'bx')
-            #
-            #     for cluster in clusters:
-            #         pyplot.plot(cluster[0], cluster[1], 'rx')
-            #
-            #
-            # left = min([point[0] for point in points])
-            # right = max([point[0] for point in points])
-            # heights = [self.staff[0][position] for position in (1, 3, 5, 7, 9)]
-            # for height in heights:
-            #     pyplot.plot([left, right], [height, height], 'k-')
-            #
-            # heights = [self.staff[0][position] for position in (2, 4, 6, 8)]
-            # for height in heights:
-            #     pyplot.plot([left, right], [height, height], 'k--')
-            #
-            # pyplot.savefig('clusters.png')
-            # pyplot.close()
-            # pyplot.cla()
+                    # check against criteria
+                    if len(weighting) > 40:
 
+                        # add to condensations
+                        condensation = self._tesselate(horizontal, vertical, silhouette, measure)
+                        condensations.append(condensation)
 
+                    # if desired
+                    if plot:
+
+                        # plot weightee average
+                        pyplot.plot(horizontal, vertical, 'mx')
+
+            # plot staff lines
+            if plot:
+
+                # get lefts and rights
+                left = min([point[0] for point in points])
+                right = max([point[0] for point in points])
+                heights = [self.staff[0][position] for position in (1, 3, 5, 7, 9)]
+                for height in heights:
+
+                    # plot each main line
+                    pyplot.plot([left, right], [height, height], 'k-')
+
+                # heights for spaces
+                heights = [self.staff[0][position] for position in (2, 4, 6, 8)]
+                for height in heights:
+
+                    # plot spaces
+                    pyplot.plot([left, right], [height, height], 'k--')
+
+                # save plot
+                pyplot.savefig('clusters.png')
+                pyplot.close()
+                pyplot.cla()
 
         return condensations
 
@@ -1535,6 +1585,8 @@ class Harmonizer(object):
             self.sheet
             self.painting
             self.tiles
+            self.annotations
+            self.chords
         """
 
         # establish sheet
@@ -1575,7 +1627,7 @@ class Harmonizer(object):
         for number, measure in enumerate(measures):
 
             # status
-            print('measure {} of {}...'.format(number, len(measures)))
+            self._time('measure {} of {}...'.format(number, len(measures)))
 
             # begin notes of the measure
             members = []
@@ -1596,7 +1648,6 @@ class Harmonizer(object):
                         tiles.append(tile)
 
             # make predictions
-            print('making predictions...')
             shadows = [tile['shadow'] for tile in tiles]
             predictions = self.predict(shadows)
             reports.append(predictions)
@@ -1606,7 +1657,6 @@ class Harmonizer(object):
                 tile['prediction'] = [float(entry) for entry in prediction]
 
             # find elements
-            print('coalescing...')
             for category in self.categories:
 
                 # find elements
@@ -1622,7 +1672,7 @@ class Harmonizer(object):
                     [members.append(self._describe(element)) for element in elements]
 
                 # add to discoveries
-                print('{}: {}'.format(category, len(elements)))
+                #print('{}: {}'.format(category, len(elements)))
                 discoveries[category] += elements
 
             # sort members by center and append
