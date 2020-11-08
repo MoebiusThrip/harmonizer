@@ -1367,6 +1367,7 @@ class Harmonizer(object):
             tiles: list of dicts
             silhouette: greater silhouette
             category: str, the category
+            measure: dict, the measure
             width=25: width of insert
             height=25: height of insert
             plot=False: boolean, make plot?
@@ -1457,7 +1458,7 @@ class Harmonizer(object):
                     vertical = int(numpy.average(verticals, weights=weighting))
 
                     # check against criteria
-                    if len(weighting) > 40:
+                    if len(weighting) > 100:
 
                         # add to condensations
                         condensation = self._tesselate(horizontal, vertical, silhouette, measure)
@@ -1475,20 +1476,20 @@ class Harmonizer(object):
                 # get lefts and rights
                 left = min([point[0] for point in points])
                 right = max([point[0] for point in points])
-                heights = [self.staff[0][position] for position in (1, 3, 5, 7, 9)]
+                heights = [measure[position] for position in (1, 3, 5, 7, 9)]
                 for height in heights:
 
                     # plot each main line
                     pyplot.plot([left, right], [height, height], 'k-')
 
                 # heights for spaces
-                heights = [self.staff[0][position] for position in (2, 4, 6, 8)]
+                heights = [measure[position] for position in (2, 4, 6, 8)]
                 for height in heights:
 
                     # plot spaces
                     pyplot.plot([left, right], [height, height], 'k--')
 
-                # save plot
+                # save plot and clear
                 pyplot.savefig('clusters.png')
                 pyplot.close()
                 pyplot.cla()
