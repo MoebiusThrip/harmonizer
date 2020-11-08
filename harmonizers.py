@@ -332,8 +332,8 @@ class Harmonizer(object):
         notes = 'ABCDEFG'
 
         # define clefs
-        self.clefs['treble'] = {position: notes[(position + 4) % 7] for position in range(*self.positions)}
-        self.clefs['bass'] = {position: notes[(position + 6) % 7] for position in range(*self.positions)}
+        self.clefs['treble'] = {position: notes[(position + 3) % 7] for position in range(*self.positions)}
+        self.clefs['bass'] = {position: notes[(position + 5) % 7] for position in range(*self.positions)}
 
         # for flats
         if self.polarity == 'flats':
@@ -1171,7 +1171,6 @@ class Harmonizer(object):
         # determine position
         positions = {height: position for stave in self.staff for position, height in stave.items()}
         position = positions[vertical]
-        position = max([position - 1, self.positions[0]])
 
         # add attributes
         tile['position'] = position
@@ -1389,6 +1388,11 @@ class Harmonizer(object):
             points = [center for center, prediction in zip(centers, predictions) if prediction[index] == max(prediction)]
             weights = [float(prediction[index]) for prediction in predictions if prediction[index] == max(prediction)]
 
+            # pyplot.cla()
+            # xs = [point[0] for point in points]
+            # ys = [point[1] for point in points]
+            # pyplot.plot(xs, ys, 'g,')
+
             # check for points
             if len(points) > 0:
 
@@ -1411,6 +1415,33 @@ class Harmonizer(object):
                     vertical = int(numpy.average(verticals, weights=weighting))
                     condensation = self._tesselate(horizontal, vertical, silhouette, measure)
                     condensations.append(condensation)
+
+            #         pyplot.plot(horizontal, vertical, 'mx')
+            #
+            #         horizontal = int(numpy.average(horizontals))
+            #         vertical = int(numpy.average(verticals))
+            #
+            #         pyplot.plot(horizontal, vertical, 'bx')
+            #
+            #     for cluster in clusters:
+            #         pyplot.plot(cluster[0], cluster[1], 'rx')
+            #
+            #
+            # left = min([point[0] for point in points])
+            # right = max([point[0] for point in points])
+            # heights = [self.staff[0][position] for position in (1, 3, 5, 7, 9)]
+            # for height in heights:
+            #     pyplot.plot([left, right], [height, height], 'k-')
+            #
+            # heights = [self.staff[0][position] for position in (2, 4, 6, 8)]
+            # for height in heights:
+            #     pyplot.plot([left, right], [height, height], 'k--')
+            #
+            # pyplot.savefig('clusters.png')
+            # pyplot.close()
+            # pyplot.cla()
+
+
 
         return condensations
 
@@ -2176,7 +2207,7 @@ class Harmonizer(object):
 
             # set highest and lowest row index
             highest = stave[self.positions[1] - 1]
-            lowest = stave[self.positions[0]]
+            lowest = stave[self.positions[0]] + 20
 
             # get all columns
             columns = []
