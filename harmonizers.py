@@ -1384,9 +1384,12 @@ class Harmonizer(object):
                 # go through all vertical points
                 for vertical in range(-marginii, marginii + 1):
 
-                    # add point to centers
-                    point = (center[0] + horizontal, center[1] + vertical)
-                    centers.append(point)
+                    # add index condition
+                    if horizontal % 2 == 0 and vertical % 2 == 0:
+
+                        # add point to centers
+                        point = (center[0] + horizontal, center[1] + vertical)
+                        centers.append(point)
 
         # remove duplicates
         centers = list(set(centers))
@@ -1449,7 +1452,7 @@ class Harmonizer(object):
                     vertical = int(numpy.average(verticals, weights=weighting))
 
                     # check against criteria
-                    if len(weighting) > 150:
+                    if len(weighting) > 50:
 
                         # add to condensations
                         condensation = self._tesselate(horizontal, vertical, silhouette, measure)
