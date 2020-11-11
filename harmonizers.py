@@ -2941,7 +2941,6 @@ class Harmonizer(object):
             # get first set of tiles
             samples = tiles[:resolution ** 2]
             tiles = tiles[resolution ** 2:]
-
             print('samples: {}'.format(len(samples)))
 
             # construct grid
