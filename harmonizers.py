@@ -2955,7 +2955,8 @@ class Harmonizer(object):
             shadow = Image.fromarray(shadow)
             shadow.save('reinforcement.png')
 
-            print([key for key in tile.keys()])
+            # print predicted category
+            print('\nprediction: {}\n'.format(tile['category']))
 
             # print predictions
             predictions = tile['prediction']
