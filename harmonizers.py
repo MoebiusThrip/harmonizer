@@ -302,6 +302,30 @@ class Harmonizer(object):
 
         return similarity
 
+    def _crystallize(self, samples):
+        """Crystallize a reinforcement grid from sample tiles.
+
+        Arguments:
+            samples: list of dicts
+
+        Returns:
+            PIL image
+        """
+
+        # determine dimensions
+
+        # make placeholders
+
+        # dim those needing dimming
+
+        # add lines
+
+        # annotate numbers
+
+
+
+        return None
+
     def _deepen(self, shadow):
         """Deepen the shadow by one layer to pass to CNN.
 
@@ -687,7 +711,8 @@ class Harmonizer(object):
         print('ingesting...')
 
         # set reservoirs
-        reservoirs = ('training', 'reinforcement')
+        reservoirs = ('reinforcement', 'training')
+        reservoirs = ('training', )
 
         # set categories
         categories = ['quarters', 'halves', 'sharps', 'flats', 'naturals', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
@@ -2917,16 +2942,15 @@ class Harmonizer(object):
             None
         """
 
-        # gather up all discovered tiles
-        tiles = []
+        # gather up all discovered tiles and categories
+        tiles = self.tiles[option]
         categories = self.categories
-        tiles += self.tiles[option]
 
         # keep only those with attached predictions
         tiles = [tile for tile in tiles if 'prediction' in tile.keys()]
 
-        # randomize
-        tiles.sort(key=lambda tile: random())
+        # sort by the score, viewing lowest scores first
+        tiles.sort(key=lambda tile: tile['score'])
 
         # print length
         print('tiles: {}'.format(len(tiles)))
@@ -2934,16 +2958,20 @@ class Harmonizer(object):
         # set looping to true
         looping = True
 
-        # enter loop
-        resolution = 8
+        # enter loop, making a resolution x resolution grid
+        resolution = 10
         while looping and len(tiles) > 0:
 
-            # get first set of tiles
-            samples = tiles[:resolution ** 2]
+            # get first set of samples and remove from tiles
+            samples = [{'shadow': tile['shadow'], 'dim': false, 'score': tile['score']} for tile in tiles[:resolution ** 2]]
             tiles = tiles[resolution ** 2:]
             print('samples: {}'.format(len(samples)))
 
             # construct grid
+            grid = self._crystallize(samples)
+
+
+
             shadows = [sample['shadow'] for sample in samples]
             grid = []
             trace = {}
@@ -2998,10 +3026,10 @@ class Harmonizer(object):
                 while command not in ('', ' '):
 
                     # parse command
-                    category = command.split()[0]
+                    designation = command.split()[0]
 
                     # use fuzzy wuzzy to calculate closeness to category names
-                    scores = [(category, fuzz.ratio(command, category)) for category in categories]
+                    scores = [(category, fuzz.ratio(designation, category)) for category in categories]
                     scores.sort(key=lambda pair: pair[1], reverse=True)
 
                     # get top category
