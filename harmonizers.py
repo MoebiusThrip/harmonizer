@@ -2907,7 +2907,7 @@ class Harmonizer(object):
 
         return None
 
-    def reinforce(self, *options):
+    def reinforce(self, option):
         """Reinforce the CNN learning by passing mistakes into appropriate reinforcement folders.
 
         Argument:
@@ -2917,22 +2917,10 @@ class Harmonizer(object):
             None
         """
 
-        # resolve empty options
-        if len(options) < 1:
-
-            # set to all categories
-            options = self.categories
-
         # gather up all discovered tiles
         tiles = []
         categories = self.categories
-        for category in categories:
-
-            # check against options
-            if category in options:
-
-                # add to tiles
-                tiles += self.tiles[category]
+        tiles += self.tiles[option]
 
         # keep only those with attached predictions
         tiles = [tile for tile in tiles if 'prediction' in tile.keys()]
@@ -2992,16 +2980,7 @@ class Harmonizer(object):
             grid.save('reinforcement.png')
 
             # print predicted category
-            print('\nprediction: {}\n'.format(tile['category']))
-
-            # print predictions
-            predictions = tile['prediction']
-            zipper = [pair for pair in zip(categories, predictions)]
-            zipper.sort(key=lambda pair: pair[1], reverse=True)
-            for category, prediction in zipper:
-
-                # print score
-                print('{}: {}'.format(category, round(prediction, 2)))
+            print('\nprediction: {}\n'.format(option))
 
             # get input
             command = input('\n>>?')
