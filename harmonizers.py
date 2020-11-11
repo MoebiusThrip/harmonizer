@@ -1667,19 +1667,19 @@ class Harmonizer(object):
 
                 # find elements
                 elements = self.select(tiles, category)
+                discoveries[category] += elements
 
                 # coalesce for certain elements
                 if category in ('quarters'):
 
                     # coelsece elements
-                    elements = self.coalesce(elements, silhouette, category, measure)
+                    condensations = self.coalesce(elements, silhouette, category, measure)
 
                     # add member to notes for each element
-                    [members.append(self._describe(element)) for element in elements]
+                    [members.append(self._describe(element)) for element in condensations]
 
                 # add to discoveries
                 #print('{}: {}'.format(category, len(elements)))
-                discoveries[category] += elements
 
             # sort members by center and append
             members.sort(key=lambda member: member['center'][0])
@@ -2944,16 +2944,38 @@ class Harmonizer(object):
         looping = True
 
         # enter loop
+        resolution = 8
         while looping and len(tiles) > 0:
 
-            # pop off last tile
-            tile = tiles.pop()
+            # get first set of tiles
+            samples = tiles[:resolution ** 2]
+            tiles = tiles[resolution ** 2:]
 
-            # post to file
-            shadow = tile['shadow']
-            shadow = self.holograph(shadow)
-            shadow = Image.fromarray(shadow)
-            shadow.save('reinforcement.png')
+            # construct grid
+            shadows = [sample['shadow'] for sample in samples]
+            grid = []
+            trace = {}
+            for index in range(resolution):
+
+                # go through horizontal
+                row = []
+                for indexii in range(resolution):
+
+                    # add shadow
+                    shadow = shadows[resolution * index + indexii]
+                    row.append(shadows.pop())
+                    trace[(index, indexii)] = shadow
+
+                # add to grid
+                grid.append(row)
+
+            # make grid
+            grid = numpy.concatenate([numpy.concatenate([entry for entry in row], axis=0) for row in grid], axis=1)
+
+            # get image
+            grid = self.holograph(grid)
+            grid = Image.fromarray(grid)
+            grid.save('reinforcement.png')
 
             # print predicted category
             print('\nprediction: {}\n'.format(tile['category']))
