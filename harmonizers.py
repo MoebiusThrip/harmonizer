@@ -3922,8 +3922,14 @@ print('imported harmonizers.')
 harmo = Harmonizer('pieces/concerto')
 harmo.prepare()
 harmo.load()
+harmo.grade()
+harmo.evaluate()
 
-
+# perform discovery
+harmo.discover(50)
+harmo.paint()
+harmo.see()
+harmo.reinforce('quarters')
 
 
 
