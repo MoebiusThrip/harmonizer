@@ -312,19 +312,87 @@ class Harmonizer(object):
             PIL image
         """
 
-        # determine dimensions
+        # determine resolution
+        resolution = sqrt(len(samples))
+        if resolution > int(resolution):
+
+            # set resolution
+            resolution += 1
+
+        # make integer
+        resolution = int(resolution)
 
         # make placeholders
+        empty = resolution ** 2 - len(samples)
+        placeholders = [numpy.zeros((self.height, self.width)) for _ in range(empty)]
+        placeholders = [{'shadow': place, 'dim': False, 'score': -1.0} for place in placeholders]
 
-        # dim those needing dimming
+        # combine samples and placeholders
+        samples = samples + placeholders
 
-        # add lines
+        # go through each samples
+        frames = []
+        for index, sample in enumerate(samples):
 
-        # annotate numbers
+            # make a copy
+            shadow = numpy.copy(sample['shadow'])
 
+            # dim the sample if necessary
+            if sample['dim']:
 
+                # compress contrast
+                shadow = numpy.multiply(shadow, 0.2)
 
-        return None
+            # convert into 3D
+            shadow = self.holograph(shadow)
+
+            # create green frame
+            red = numpy.zeros((self.height + 2, self.width + 2, 1))
+            green = numpy.full((self.height + 2, self.width + 2, 1), 255)
+            blue = numpy.zeros((self.height + 2, self.width + 2, 1))
+            opacity = numpy.full((self.height + 2, self.width + 2, 1), 255)
+            frame = numpy.concatenate((red, green, blue, opacity), axis=2)
+            frame = numpy.array(frame, dtype='uint8')
+
+            # insert shadow
+            frame[1: self.height + 1, 1: self.width + 1] = shadow
+
+            # add number
+            if sample['score'] > 0:
+
+                # convert to image
+                frame = Image.fromarray(frame)
+
+                # annotate number
+                draw = ImageDraw.Draw(frame)
+                font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
+                draw.text((3, 3), str(index), font=font, fill='green')
+
+                # convert back to array
+                frame = numpy.array(frame)
+
+            # add to frames
+            frames.append(frame)
+
+        # assemble grid
+        rows = []
+        for _ in range(resolution):
+
+            # grab first row
+            row = frames[:resolution]
+            frames = frames[resolution:]
+
+            # concatenate
+            row = numpy.concatenate(row, axis=1)
+            rows.append(row)
+
+        # concatenate all rows
+        grid = numpy.concatenate(rows, axis=0)
+
+        # convert to image
+        grid = Image.fromarray(grid)
+
+        return grid
 
     def _deepen(self, shadow):
         """Deepen the shadow by one layer to pass to CNN.
@@ -2963,14 +3031,17 @@ class Harmonizer(object):
         while looping and len(tiles) > 0:
 
             # get first set of samples and remove from tiles
-            samples = [{'shadow': tile['shadow'], 'dim': false, 'score': tile['score']} for tile in tiles[:resolution ** 2]]
+            samples = [{'shadow': tile['shadow'], 'dim': False, 'score': tile['score']} for tile in tiles[:resolution ** 2]]
             tiles = tiles[resolution ** 2:]
             print('samples: {}'.format(len(samples)))
 
             # construct grid
             grid = self._crystallize(samples)
 
+            # post grid
+            grid.save('reinforcement.png')
 
+            return
 
             shadows = [sample['shadow'] for sample in samples]
             grid = []
@@ -4003,7 +4074,7 @@ harmo.grade()
 harmo.evaluate()
 
 # perform discovery
-harmo.discover(50)
+harmo.discover(10)
 harmo.paint()
 harmo.see()
 harmo.reinforce('quarters')
