@@ -705,6 +705,9 @@ class Harmonizer(object):
             # for each reservoir
             for reservoir in reservoirs:
 
+                # print training
+                print('reservoir: {}, category: {}'.format(reservoir, category))
+
                 # get all images
                 for name in os.listdir('{}/{}'.format(reservoir, category)):
 
