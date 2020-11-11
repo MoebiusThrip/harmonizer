@@ -4040,7 +4040,7 @@ harmo.grade()
 harmo.evaluate()
 
 # perform discovery
-harmo.discover(10)
+harmo.discover()
 harmo.paint()
 harmo.see()
 harmo.reinforce('quarters')
