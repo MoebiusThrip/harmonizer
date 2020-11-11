@@ -2940,6 +2940,9 @@ class Harmonizer(object):
         # randomize
         tiles.sort(key=lambda tile: random())
 
+        # print length
+        print('tiles: {}'.format(len(tiles)))
+
         # set looping to true
         looping = True
 
@@ -2951,6 +2954,8 @@ class Harmonizer(object):
             samples = tiles[:resolution ** 2]
             tiles = tiles[resolution ** 2:]
 
+            print('samples: {}'.format(len(samples)))
+
             # construct grid
             shadows = [sample['shadow'] for sample in samples]
             grid = []
@@ -2961,10 +2966,19 @@ class Harmonizer(object):
                 row = []
                 for indexii in range(resolution):
 
-                    # add shadow
-                    shadow = shadows[resolution * index + indexii]
-                    row.append(shadows.pop())
-                    trace[(index, indexii)] = shadow
+                    # try to
+                    try:
+
+                        # add shadow
+                        shadow = shadows[resolution * index + indexii]
+                        row.append(shadow)
+                        trace[(index, indexii)] = shadow
+
+                    # otherwise
+                    except IndexError:
+
+                        # skip
+                        pass
 
                 # add to grid
                 grid.append(row)
