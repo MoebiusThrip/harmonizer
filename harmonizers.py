@@ -309,7 +309,7 @@ class Harmonizer(object):
             samples: list of dicts
 
         Returns:
-            PIL image
+            None
         """
 
         # determine resolution
@@ -392,7 +392,10 @@ class Harmonizer(object):
         # convert to image
         grid = Image.fromarray(grid)
 
-        return grid
+        # save
+        grid.save('reinforcement.png')
+
+        return None
 
     def _deepen(self, shadow):
         """Deepen the shadow by one layer to pass to CNN.
@@ -3036,44 +3039,7 @@ class Harmonizer(object):
             print('samples: {}'.format(len(samples)))
 
             # construct grid and post
-            grid = self._crystallize(samples)
-            grid.save('reinforcement.png')
-
-            return
-
-            shadows = [sample['shadow'] for sample in samples]
-            grid = []
-            trace = {}
-            for index in range(resolution):
-
-                # go through horizontal
-                row = []
-                for indexii in range(resolution):
-
-                    # try to
-                    try:
-
-                        # add shadow
-                        shadow = shadows[resolution * index + indexii]
-                        row.append(shadow)
-                        trace[(index, indexii)] = shadow
-
-                    # otherwise
-                    except IndexError:
-
-                        # skip
-                        pass
-
-                # add to grid
-                grid.append(row)
-
-            # make grid
-            grid = numpy.concatenate([numpy.concatenate([entry for entry in row], axis=0) for row in grid], axis=1)
-
-            # get image
-            grid = self.holograph(grid)
-            grid = Image.fromarray(grid)
-            grid.save('reinforcement.png')
+            self._crystallize(samples)
 
             # print predicted category
             print('\nprediction: {}\n'.format(option))
@@ -3091,7 +3057,6 @@ class Harmonizer(object):
             else:
 
                 # keep track of reinforced tuples
-                reinforcements = []
                 while command not in ('', ' '):
 
                     # parse command
@@ -3108,13 +3073,13 @@ class Harmonizer(object):
                     points = command.split()[1:]
                     if len(points) > 0:
 
-                        # send all tuples to reinforment
+                        # send all tuples to reinforcement
                         for point in points:
 
-                            # unpack
-                            vertical = int(point[1])
-                            horizontal = int(point[0])
-                            shadow = trace[(horizontal, vertical)]
+                            # set dim to true
+                            index = int(point)
+                            samples[index]['dim'] = True
+                            shadow = samples[index]['shadow']
 
                             # construct deposit path from length of current directory
                             length = len(os.listdir('reinforcement/{}'.format(top)))
@@ -3125,17 +3090,17 @@ class Harmonizer(object):
                             shadow = Image.fromarray(self.holograph(shadow))
                             shadow.save(deposit)
 
-                            # add to reinforcements
-                            reinforcements.append((vertical, horizontal))
-
                     # otherwise
                     else:
 
                         # send all to category
-                        for point, shadow in trace.items():
+                        for sample in samples:
 
                             # check for presence in reinforcements
-                            if point not in reinforcements:
+                            if not sample['dim']:
+
+                                # set shadow
+                                shadow = sample['shadow']
 
                                 # construct deposit path from length of current directory
                                 length = len(os.listdir('reinforcement/{}'.format(top)))
@@ -3145,6 +3110,9 @@ class Harmonizer(object):
                                 print('writing {}...'.format(deposit))
                                 shadow = Image.fromarray(self.holograph(shadow))
                                 shadow.save(deposit)
+
+                    # repost grid
+                    self._crystallize(samples)
 
                     # get input
                     command = input('\n>>?')
