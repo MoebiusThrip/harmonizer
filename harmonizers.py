@@ -3004,6 +3004,9 @@ class Harmonizer(object):
                     scores = [(category, fuzz.ratio(command, category)) for category in categories]
                     scores.sort(key=lambda pair: pair[1], reverse=True)
 
+                    # get top category
+                    top = scores[0][0]
+
                     # check for points
                     points = command.split()[1:]
                     if len(points) > 0:
@@ -3012,9 +3015,9 @@ class Harmonizer(object):
                         for point in points:
 
                             # unpack
-                            vertical = int(point[0])
-                            horizontal = int(point[1])
-                            shadow = trace[(vertical, horizontal)]
+                            vertical = int(point[1])
+                            horizontal = int(point[0])
+                            shadow = trace[(horizontal, vertical)]
 
                             # construct deposit path from length of current directory
                             length = len(os.listdir('reinforcement/{}'.format(top)))
@@ -3022,6 +3025,7 @@ class Harmonizer(object):
 
                             # save image
                             print('writing {}...'.format(deposit))
+                            shadow = Image.fromarray(self.holograph(shadow))
                             shadow.save(deposit)
 
                             # add to reinforcements
@@ -3042,7 +3046,11 @@ class Harmonizer(object):
 
                                 # save image
                                 print('writing {}...'.format(deposit))
+                                shadow = Image.fromarray(self.holograph(shadow))
                                 shadow.save(deposit)
+
+                    # get input
+                    command = input('\n>>?')
 
         return None
 
