@@ -21,6 +21,8 @@ from matplotlib import pyplot
 # import sklearn
 from sklearn.cluster import AffinityPropagation, MeanShift
 
+# import fuzzy wuzzy
+from fuzzywuzzy import fuzz
 
 # import tensorflow
 import tensorflow
@@ -684,6 +686,9 @@ class Harmonizer(object):
         # status
         print('ingesting...')
 
+        # set reservoirs
+        reservoirs = ('training', 'reinforcement')
+
         # set categories
         categories = ['quarters', 'halves', 'sharps', 'flats', 'naturals', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
         self.categories = categories
@@ -697,15 +702,18 @@ class Harmonizer(object):
         data = {category: [] for category in categories}
         for category in categories:
 
-            # get all images
-            for name in os.listdir(category):
+            # for each reservoir
+            for reservoir in reservoirs:
 
-                # get image file
-                image = Image.open(category + '/' + name).convert('RGBA')
-                image = numpy.array(image)
+                # get all images
+                for name in os.listdir('{}/{}'.format(reservoir, category)):
 
-                # add to data
-                data[category].append(image)
+                    # get image file
+                    image = Image.open('{}/{}/{}'.format(reservoir, category, name)).convert('RGBA')
+                    image = numpy.array(image)
+
+                    # add to data
+                    data[category].append(image)
 
         # set data
         self.data = data
@@ -1451,8 +1459,8 @@ class Harmonizer(object):
                     horizontal = int(numpy.average(horizontals, weights=weighting))
                     vertical = int(numpy.average(verticals, weights=weighting))
 
-                    # check against criteria
-                    if len(weighting) > 50:
+                    # check against criteria for cluster size
+                    if len(weighting) > 0:
 
                         # add to condensations
                         condensation = self._tesselate(horizontal, vertical, silhouette, measure)
@@ -2041,10 +2049,12 @@ class Harmonizer(object):
         # add back the 0.5 and multiply by 255
         clone = numpy.add(clone, 0.5)
         clone = numpy.multiply(clone, 255)
+        clone = self._deepen(clone)
 
         # make layer for qpacity
         opacity = numpy.ones((clone.shape[0], clone.shape[1]))
         opacity = numpy.multiply(opacity, 255)
+        opacity = self._deepen(opacity)
 
         # make hologram
         hologram = numpy.concatenate((clone, clone, clone, opacity), axis=2)
@@ -2891,6 +2901,103 @@ class Harmonizer(object):
 
         # set the chord name
         self.chords[measure] = chord
+
+        return None
+
+    def reinforce(self, *options):
+        """Reinforce the CNN learning by passing mistakes into appropriate reinforcement folders.
+
+        Argument:
+            *options: unpacked tuple of strings, predicted categories
+
+        Returns:
+            None
+        """
+
+        # resolve empty options
+        if len(options) < 1:
+
+            # set to all categories
+            options = self.categories
+
+        # gather up all discovered tiles
+        tiles = []
+        categories = self.categories
+        for category in categories:
+
+            # check against options
+            if category in options:
+
+                # add to tiles
+                tiles += self.tiles[category]
+
+        # keep only those with attached predictions
+        tiles = [tile for tile in tiles if 'prediction' in tile.keys()]
+
+        # randomize
+        tiles.sort(key=lambda tile: random())
+
+        # set looping to true
+        looping = True
+
+        # enter loop
+        while looping and len(tiles) > 0:
+
+            # pop off last tile
+            tile = tiles.pop()
+
+            # post to file
+            shadow = tile['shadow']
+            shadow = self.holograph(shadow)
+            shadow = Image.fromarray(shadow)
+            shadow.save('reinforcement.png')
+
+            print([key for key in tile.keys()])
+
+            # print predictions
+            predictions = tile['prediction']
+            zipper = [pair for pair in zip(categories, predictions)]
+            zipper.sort(key=lambda pair: pair[1], reverse=True)
+            for category, prediction in zipper:
+
+                # print score
+                print('{}: {}'.format(category, round(prediction, 2)))
+
+            # get input
+            command = input('\n>>?')
+
+            # exit loop with exit
+            if command in ('exit', 'xxx'):
+
+                # exit looping
+                looping = False
+
+            # otherwise assume judegement on prediction
+            else:
+
+                # assume blank means predictions is correct
+                if command in ('', ' '):
+
+                    # send to top predicted category
+                    top = zipper[0][0]
+
+                # otherwise, match to closest category
+                else:
+
+                    # use fuzzy wuzzy to calculate closeness to category names
+                    scores = [(category, fuzz.ratio(command, category)) for category in categories]
+                    scores.sort(key=lambda pair: pair[1], reverse=True)
+
+                    # send to top predicted category
+                    top = scores[0][0]
+
+                # construct deposit path from length of current directory
+                length = len(os.listdir('reinforcement/{}'.format(top)))
+                deposit = 'reinforcement/{}/{}_{}.png'.format(top, top, length)
+
+                # save image
+                print('writing {}...'.format(deposit))
+                shadow.save(deposit)
 
         return None
 
@@ -3812,23 +3919,6 @@ harmo = Harmonizer('pieces/concerto')
 harmo.prepare()
 harmo.load()
 
-# recover
-#harmo.recover()
-
-# test theorize
-# harmo.theorize(*harmo.hum(10))
-
-# corrections
-# harmo.correct(40, 1, '', 2, '', 3, '', 4, '', 5, '', 6, '', 7, '')
-# harmo.correct(41, 0, 'Bb', 6, 'C#')
-# harmo.conquer(39)
-# harmo.conquer(40)
-
-
-# # view
-# harmo.harmonize()
-# harmo.paint(0, 168)
-# harmo.publish()
 
 
 
