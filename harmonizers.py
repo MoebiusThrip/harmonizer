@@ -3001,29 +3001,56 @@ class Harmonizer(object):
             # otherwise assume judegement on prediction
             else:
 
-                # assume blank means predictions is correct
-                if command in ('', ' '):
+                # keep track of reinforced tuples
+                reinforcements = []
+                while command not in ('', ' '):
 
-                    # send to top predicted category
-                    top = zipper[0][0]
-
-                # otherwise, match to closest category
-                else:
+                    # parse command
+                    category = command.split()[0]
 
                     # use fuzzy wuzzy to calculate closeness to category names
                     scores = [(category, fuzz.ratio(command, category)) for category in categories]
                     scores.sort(key=lambda pair: pair[1], reverse=True)
 
-                    # send to top predicted category
-                    top = scores[0][0]
+                    # check for points
+                    points = command.split()[1:]
+                    if len(points) > 0:
 
-                # construct deposit path from length of current directory
-                length = len(os.listdir('reinforcement/{}'.format(top)))
-                deposit = 'reinforcement/{}/{}_{}.png'.format(top, top, length)
+                        # send all tuples to reinforment
+                        for point in points:
 
-                # save image
-                print('writing {}...'.format(deposit))
-                shadow.save(deposit)
+                            # unpack
+                            vertical = int(point[0])
+                            horizontal = int(point[1])
+                            shadow = trace[(vertical, horizontal)]
+
+                            # construct deposit path from length of current directory
+                            length = len(os.listdir('reinforcement/{}'.format(top)))
+                            deposit = 'reinforcement/{}/{}_{}.png'.format(top, top, length)
+
+                            # save image
+                            print('writing {}...'.format(deposit))
+                            shadow.save(deposit)
+
+                            # add to reinforcements
+                            reinforcements.append((vertical, horizontal))
+
+                    # otherwise
+                    else:
+
+                        # send all to category
+                        for point, shadow in trace.items():
+
+                            # check for presence in reinforcements
+                            if point not in reinforcements:
+
+                                # construct deposit path from length of current directory
+                                length = len(os.listdir('reinforcement/{}'.format(top)))
+                                deposit = 'reinforcement/{}/{}_{}.png'.format(top, top, length)
+
+                                # save image
+                                print('writing {}...'.format(deposit))
+                                shadow.save(deposit)
 
         return None
 
