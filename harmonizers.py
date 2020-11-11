@@ -366,7 +366,7 @@ class Harmonizer(object):
                 # annotate number
                 draw = ImageDraw.Draw(frame)
                 font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
-                draw.text((3, 3), str(index), font=font, fill='green')
+                draw.text((3, 3), str(index), font=font, fill='orange')
 
                 # convert back to array
                 frame = numpy.array(frame)
@@ -3035,10 +3035,8 @@ class Harmonizer(object):
             tiles = tiles[resolution ** 2:]
             print('samples: {}'.format(len(samples)))
 
-            # construct grid
+            # construct grid and post
             grid = self._crystallize(samples)
-
-            # post grid
             grid.save('reinforcement.png')
 
             return
