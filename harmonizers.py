@@ -366,7 +366,7 @@ class Harmonizer(object):
                 # annotate number
                 draw = ImageDraw.Draw(frame)
                 font = ImageFont.truetype('/Library/Fonts/{}.ttf'.format(self.font), 15)
-                draw.text((3, 3), str(index), font=font, fill='orange')
+                draw.text((3, 3), str(index), font=font, fill='red')
 
                 # convert back to array
                 frame = numpy.array(frame)
@@ -389,8 +389,10 @@ class Harmonizer(object):
         # concatenate all rows
         grid = numpy.concatenate(rows, axis=0)
 
-        # convert to image
+        # convert to image and double size
+        height, width = grid.shape[:2]
         grid = Image.fromarray(grid)
+        grid = grid.resize((2 * width, 2 * height))
 
         # save
         grid.save('reinforcement.png')
@@ -3003,11 +3005,12 @@ class Harmonizer(object):
 
         return None
 
-    def reinforce(self, option):
+    def reinforce(self, option, skip=0):
         """Reinforce the CNN learning by passing mistakes into appropriate reinforcement folders.
 
         Argument:
             *options: unpacked tuple of strings, predicted categories
+            skip: int, page number to skip to
 
         Returns:
             None
@@ -3026,23 +3029,41 @@ class Harmonizer(object):
         # print length
         print('tiles: {}'.format(len(tiles)))
 
+        # set resolution
+        resolution = 10
+
+        # calculate number of pages
+        pages = int(len(tiles) / resolution ** 2) + 1
+
+        # skip to a page
+        tiles = tiles[skip * resolution ** 2:]
+        page = skip
+
         # set looping to true
         looping = True
 
         # enter loop, making a resolution x resolution grid
-        resolution = 10
         while looping and len(tiles) > 0:
+
+            # print page
+            print('\npage {} of {}...'.format(page, pages))
+            page += 1
 
             # get first set of samples and remove from tiles
             samples = [{'shadow': tile['shadow'], 'dim': False, 'score': tile['score']} for tile in tiles[:resolution ** 2]]
             tiles = tiles[resolution ** 2:]
             print('samples: {}'.format(len(samples)))
 
-            # construct grid and post
-            self._crystallize(samples)
+            # get scores
+            scores = [sample['score'] for sample in samples]
+            lowest = round(min(scores), 2)
+            highest = round(max(scores), 2)
 
             # print predicted category
-            print('\nprediction: {}\n'.format(option))
+            print('\nprediction: {}, scores: {} to {}\n'.format(option, lowest, highest))
+
+            # construct grid and post
+            self._crystallize(samples)
 
             # get input
             command = input('\n>>?')
@@ -3110,6 +3131,11 @@ class Harmonizer(object):
                                 print('writing {}...'.format(deposit))
                                 shadow = Image.fromarray(self.holograph(shadow))
                                 shadow.save(deposit)
+
+                        # report percentage
+                        lits = [sample for sample in samples if not sample['dim']]
+                        percent = round(100 * float(len(lits) / len(samples)), 2)
+                        print('{}% passed'.format(percent))
 
                     # repost grid
                     self._crystallize(samples)
@@ -4040,7 +4066,7 @@ harmo.grade()
 harmo.evaluate()
 
 # perform discovery
-harmo.discover()
+harmo.discover(10)
 harmo.paint()
 harmo.see()
 harmo.reinforce('quarters')
