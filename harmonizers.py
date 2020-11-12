@@ -4069,7 +4069,7 @@ harmo.evaluate()
 harmo.discover()
 harmo.paint()
 harmo.see()
-harmo.reinforce('quarters')
+harmo.reinforce('quarters', skip=24)
 
 
 
