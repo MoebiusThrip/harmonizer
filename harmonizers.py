@@ -113,7 +113,7 @@ class Harmonizer(object):
 
         # discover properties
         self.increment = 12
-        self.smearing = 4
+        self.smearing = 1
         self.criteria = 0.98
         self.reports = []
 
@@ -785,7 +785,6 @@ class Harmonizer(object):
 
         # set reservoirs
         reservoirs = ('reinforcement', 'training')
-        reservoirs = ('training', )
 
         # set categories
         categories = ['quarters', 'halves', 'sharps', 'flats', 'naturals', 'rests', 'clefs', 'numbers', 'bars', 'blanks']
@@ -803,11 +802,9 @@ class Harmonizer(object):
             # for each reservoir
             for reservoir in reservoirs:
 
-                # print training
-                print('reservoir: {}, category: {}'.format(reservoir, category))
-
                 # get all images
-                for name in os.listdir('{}/{}'.format(reservoir, category)):
+                contents = os.listdir('{}/{}'.format(reservoir, category))
+                for name in contents:
 
                     # get image file
                     image = Image.open('{}/{}/{}'.format(reservoir, category, name)).convert('RGBA')
@@ -815,6 +812,9 @@ class Harmonizer(object):
 
                     # add to data
                     data[category].append(image)
+
+                # print summar
+                print('reservoir: {}, category: {}, {} entries'.format(reservoir, category, len(contents)))
 
         # set data
         self.data = data
@@ -4065,11 +4065,11 @@ harmo.load()
 harmo.grade()
 harmo.evaluate()
 
-# perform discovery
-harmo.discover()
-harmo.paint()
-harmo.see()
-harmo.reinforce('quarters', skip=24)
+# # perform discovery
+# harmo.discover(10)
+# harmo.paint()
+# harmo.see()
+# harmo.reinforce('quarters', skip=24)
 
 
 
