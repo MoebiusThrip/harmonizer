@@ -113,7 +113,7 @@ class Harmonizer(object):
 
         # discover properties
         self.increment = 12
-        self.smearing = 1
+        self.smearing = 2
         self.criteria = 0.98
         self.reports = []
 
@@ -166,11 +166,12 @@ class Harmonizer(object):
 
         return
 
-    def _balance(self, samples):
+    def _balance(self, samples, total=10000):
         """Balance each list of samples by duplicating entries.
 
         Arguments:
             samples: dist of lists
+            total=10000: total per category
 
         Returns:
             dict of lists
@@ -187,7 +188,7 @@ class Harmonizer(object):
             # expand
             ratio = int(maximum / len(members))
             expansion = members * (ratio + 1)
-            expansions[category] = expansion[:maximum]
+            expansions[category] = expansion[:total]
 
         return expansions
 
@@ -4065,10 +4066,10 @@ harmo.load()
 harmo.grade()
 harmo.evaluate()
 
-# # perform discovery
-# harmo.discover(10)
-# harmo.paint()
-# harmo.see()
+# perform discovery
+harmo.discover(10)
+harmo.paint()
+harmo.see()
 # harmo.reinforce('quarters', skip=24)
 
 
