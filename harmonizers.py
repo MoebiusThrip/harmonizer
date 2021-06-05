@@ -1262,7 +1262,6 @@ class Harmonizer(object):
         scales['Lydian#9'] = ('1', '3', '5', '7', 'b3', 'b5', '13')
         scales['SuperLocrianbb7'] = ('1', 'b3', 'b5', '13', 'b9', '3', 'b13')
 
-
         # set scales
         self.scales = scales
 
