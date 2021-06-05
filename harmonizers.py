@@ -1244,23 +1244,24 @@ class Harmonizer(object):
         scales['Phrygian'] = ('1', 'b3', '5', 'b7', 'b9', '11', 'b13')
         scales['Locrian'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', 'b13')
 
-        # define harmonic minor modes
-        scales['HarmonicMinor'] = ('1', 'b3', '5', '7', '9', '11', 'b13')
-        scales['Lydian#9'] = ('1', '3', '5', '7', 'b3', 'b5', '13')
-        scales['Ionian#5'] = ('1', '3', 'b13', '7', '9', '11', '13')
-        scales['SuperLocrianbb7'] = ('1', 'b3', 'b5', '13', 'b9', '3', 'b13')
-        scales['Dorian#11'] = ('1', 'b3', '5', 'b7', '9', 'b5', '13')
-        scales['Phrygian#3'] = ('1', '3', '5', 'b7', 'b9', '11', 'b13')
-        scales['Locrian6'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', '13')
-
         # define melodic minor models
         scales['MelodicMinor'] = ('1', 'b3', '5', '7', '9', '11', '13')
-        scales['Phrygian6'] = ('1', 'b3', '5', 'b7', 'b9', '11', '13')
+        scales['Dorianb9'] = ('1', 'b3', '5', 'b7', 'b9', '11', '13')
         scales['Lydian#5'] = ('1', '3', 'b13', '7', '9', 'b5', '13')
-        scales['Overtone'] = ('1', '3', '5', 'b7', '9', 'b5', '13')
+        scales['Lydianb7'] = ('1', '3', '5', 'b7', '9', 'b5', '13')
         scales['Mixolydianb13'] = ('1', '3', '5', 'b7', '9', '11', 'b13')
-        scales['HalfDiminshed'] = ('1', 'b3', 'b5', 'b7', '9', '11', 'b13')
+        scales['Aeolianb5'] = ('1', 'b3', 'b5', 'b7', '9', '11', 'b13')
         scales['SuperLocrian'] = ('1', 'b3', 'b5', 'b7', 'b9', '3', 'b13')
+
+        # define harmonic minor modes
+        scales['HarmonicMinor'] = ('1', 'b3', '5', '7', '9', '11', 'b13')
+        scales['Locrian13'] = ('1', 'b3', 'b5', 'b7', 'b9', '11', '13')
+        scales['Ionian#5'] = ('1', '3', 'b13', '7', '9', '11', '13')
+        scales['Dorian#11'] = ('1', 'b3', '5', 'b7', '9', 'b5', '13')
+        scales['Phrygian3'] = ('1', '3', '5', 'b7', 'b9', '11', 'b13')
+        scales['Lydian#9'] = ('1', '3', '5', '7', 'b3', 'b5', '13')
+        scales['SuperLocrianbb7'] = ('1', 'b3', 'b5', '13', 'b9', '3', 'b13')
+
 
         # set scales
         self.scales = scales
