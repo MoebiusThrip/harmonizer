@@ -1223,6 +1223,12 @@ class Harmonizer(object):
         # override particular combinations
         codex[('b3', 'b5')] = 'dim'
         codex[('3', '#5')] = 'aug'
+        codex[('1', '3', '5', '9', '11', '13')] = 'majadd91113'
+        codex[('1', '3', '5', '9', '11')] = 'majadd911'
+        codex[('1', '3', '5', '9')] = 'majadd9'
+        codex[('1', 'b3', '5', '9', '11', '13')] = 'madd91113'
+        codex[('1', 'b3', '5', '9', '11')] = 'madd911'
+        codex[('1', 'b3', '5', '9')] = 'madd9'
 
         # define lexicon
         lexicon = {name: code for code, name in codex.items()}
@@ -4080,18 +4086,18 @@ class Harmonizer(object):
 # status
 print('imported harmonizers.')
 
-# load harmonizer
-harmo = Harmonizer('pieces/concerto')
-harmo.prepare()
-harmo.load()
-harmo.grade()
-harmo.evaluate()
-
-# perform discovery
-harmo.discover(10)
-harmo.paint()
-harmo.see()
-# harmo.reinforce('quarters', skip=24)
+# # # load harmonizer
+# harmo = Harmonizer('pieces/concerto')
+# harmo.prepare()
+# harmo.load()
+# harmo.grade()
+# harmo.evaluate()
+#
+# # perform discovery
+# harmo.discover(10)
+# harmo.paint()
+# harmo.see()
+# # harmo.reinforce('quarters', skip=24)
 
 
 
