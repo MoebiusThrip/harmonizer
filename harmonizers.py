@@ -1222,6 +1222,7 @@ class Harmonizer(object):
 
         # override particular combinations
         codex[('b3', 'b5')] = 'dim'
+        codex[('b3', 'b5', '13')] = 'dim7'
         codex[('3', '#5')] = 'aug'
         codex[('1', '3', '5', '9', '11', '13')] = 'majadd91113'
         codex[('1', '3', '5', '9', '11')] = 'majadd911'
