@@ -1230,6 +1230,10 @@ class Harmonizer(object):
         codex[('1', 'b3', '5', '9', '11', '13')] = 'madd91113'
         codex[('1', 'b3', '5', '9', '11')] = 'madd911'
         codex[('1', 'b3', '5', '9')] = 'madd9'
+        codex[('1', '3', '5', '13')] = 'maj6'
+        codex[('1', 'b3', '5', '13')] = 'm6'
+        codex[('1', '5', '11')] = 'sus4'
+        codex[('1', '5', '9')] = 'sus2'
 
         # define lexicon
         lexicon = {name: code for code, name in codex.items()}
