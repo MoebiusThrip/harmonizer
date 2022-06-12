@@ -3482,16 +3482,24 @@ class Harmonizer(object):
 
         return None
 
-    def spin(self, *chords, stash=False):
+    def spin(self, *chords, stash=True, order='chromatic'):
         """"Spin a color wheel from chords.
 
         Arguments:
             *chords: unpacked tuple of chord names
             stash=False: boolean, save figure?
+            order: str, name  of ordering
 
         Returns:
             None
         """
+
+        # set interval interval ordering
+        intervals = self.intervals
+        if order == 'fifths':
+
+            # reset order to fifths ordering
+            intervals = ['1', '5', '9', '13', '3', '7', 'b5', 'b9', 'b13', 'b3', 'b7', '11']
 
         # begin pitches and title
         pitches = []
@@ -3560,7 +3568,7 @@ class Harmonizer(object):
 
             # get slice index
             interval = self.wheel[self.key][pitch]
-            index = self.intervals.index(interval)
+            index = intervals.index(interval)
             color = self.palette[self.spectrum[interval]]
 
             # update entry
@@ -3588,7 +3596,7 @@ class Harmonizer(object):
         if stash:
 
             # save in folder as well
-            deposit = 'pieces/wheels/' + title.strip().replace(' ', '_') + '.png'
+            deposit = 'pieces/wheels/' + title.strip().replace(' ', '_') + '_{}.png'.format(order)
             pyplot.savefig(deposit)
 
         # clear plot
