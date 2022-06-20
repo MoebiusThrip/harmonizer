@@ -3495,12 +3495,13 @@ class Harmonizer(object):
             None
         """
 
-        # set interval interval ordering
-        intervals = self.intervals
-        if order == 'fifths':
+        # describe orders
+        orders = {'chromatic': ['1', 'b9', '9', 'b3', '3', '11', 'b5', '5', 'b13', '13', 'b7', '7']}
+        orders.update({'fifths': ['1', '5', '9', '13', '3', '7', 'b5', 'b9', 'b13', 'b3', 'b7', '11']})
+        orders.update({'thirds': ['1', 'b3', '3', 'b5', '5', 'b7', '7', 'b9', '9', '11', 'b13', '13']})
 
-            # reset order to fifths ordering
-            intervals = ['1', '5', '9', '13', '3', '7', 'b5', 'b9', 'b13', 'b3', 'b7', '11']
+        # set interval interval ordering
+        intervals = orders[order]
 
         # begin pitches and title
         pitches = []
@@ -3597,7 +3598,7 @@ class Harmonizer(object):
         if stash:
 
             # save in folder as well
-            deposit = 'pieces/wheels/' + title.strip().replace(' ', '_') + '_{}.png'.format(order)
+            deposit = 'pieces/wheels/{}/'.format(order) + title.strip().replace(' ', '_') + '_{}.png'.format(order)
             pyplot.savefig(deposit)
 
         # clear plot
