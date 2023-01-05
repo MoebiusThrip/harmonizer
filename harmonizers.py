@@ -3573,8 +3573,20 @@ class Harmonizer(object):
             index = intervals.index(interval)
             color = self.palette[self.spectrum[interval]]
 
+            # collect secondary intervals
+            secondaries = ''
+            for chord in chords:
+
+                # get root
+                root, harmony = self._peel(chord)
+                secondary = self.wheel[root][pitch]
+                secondaries += (secondary + ', ')
+
+            # construct secondaries
+            secondaries = secondaries[:-2]
+
             # update entry
-            labels[index] = '{} ({})'.format(pitch, interval)
+            labels[index] = '{} ({} / {})'.format(pitch, interval, secondaries)
             colors[index] = self._hex(color)
 
         # reverse lists to go clockwise
