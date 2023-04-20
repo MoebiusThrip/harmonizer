@@ -454,7 +454,8 @@ class Harmonizer(object):
 
         # define intervals and spectrum
         intervals = ['1', 'b9', '9', 'b3', '3', '11', 'b5', '5', 'b13', '13', 'b7', '7']
-        rainbow = ['white', 'black', 'magenta', 'red', 'orange', 'green', 'indigo', 'blue', 'violet', 'cyan', 'yellow', 'acid']
+        rainbow = ['white', 'black', 'magenta', 'red', 'orange', 'green', 'indigo', 'blue']
+        rainbow += ['violet', 'cyan', 'yellow', 'acid']
         spectrum = {interval: color for interval, color in zip(intervals, rainbow)}
         self.intervals = intervals
         self.spectrum = spectrum
@@ -1224,17 +1225,19 @@ class Harmonizer(object):
         codex[('b3', 'b5')] = 'dim'
         codex[('b3', 'b5', '13')] = 'dim7'
         codex[('3', '#5')] = 'aug'
-        codex[('1', '3', '5', '9', '11', '13')] = 'majadd91113'
-        codex[('1', '3', '5', '9', '11')] = 'majadd911'
-        codex[('1', '3', '5', '9')] = 'majadd9'
-        codex[('1', 'b3', '5', '9', '11', '13')] = 'madd91113'
-        codex[('1', 'b3', '5', '9', '11')] = 'madd911'
-        codex[('1', 'b3', '5', '9')] = 'madd9'
-        codex[('1', '3', '5', '13')] = 'maj6'
-        codex[('1', 'b3', '5', '7')] = 'majm7'
-        codex[('1', 'b3', '5', '13')] = 'm6'
-        codex[('1', '5', '11')] = 'sus4'
-        codex[('1', '5', '9')] = 'sus2'
+        codex[('3', '5', '9', '11', '13')] = 'majadd91113'
+        codex[('3', '5', '9', '11')] = 'majadd911'
+        codex[('3', '5', '9')] = 'majadd9'
+        codex[('b3', '5', '9', '11', '13')] = 'madd91113'
+        codex[('b3', '5', '9', '11')] = 'madd911'
+        codex[('b3', '5', '9')] = 'madd9'
+        codex[('3', '5', '13')] = 'maj6'
+        codex[('b3', '5', '7')] = 'mmaj7'
+        codex[('b3', '5', '13')] = 'm6'
+        codex[('5', '11')] = 'sus4'
+        codex[('3', '7', 'b13')] = 'augmaj7'
+        codex[('3', 'b7', 'b13')] = 'aug7'
+        codex[('b3', 'b5', '7')] = 'dimmaj7'
 
         # define lexicon
         lexicon = {name: code for code, name in codex.items()}
