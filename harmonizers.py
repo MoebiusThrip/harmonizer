@@ -1222,6 +1222,8 @@ class Harmonizer(object):
         codex = {tuple(combination): self._identify(*combination) for combination in combinations}
 
         # override particular combinations
+        codex[('3', '5')] = 'maj'
+        codex[('b3', '5')] = 'm'
         codex[('b3', 'b5')] = 'dim'
         codex[('b3', 'b5', '13')] = 'dim7'
         codex[('3', '#5')] = 'aug'
